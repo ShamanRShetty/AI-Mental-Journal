@@ -15,6 +15,13 @@ export default function Home() {
   const [showGuestBanner, setShowGuestBanner] = useState(false);
   const [overviewOpen, setOverviewOpen] = useState(false);
 
+  // Ensure page starts at top on initial load/refresh
+  useEffect(() => {
+    try {
+      window.scrollTo(0, 0);
+    } catch {}
+  }, []);
+
   // Hide the guest banner after a full reload by clearing the 'wasGuest' flag
   useEffect(() => {
     try {
