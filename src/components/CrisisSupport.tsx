@@ -418,19 +418,32 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
   };
 
   const shareWithContact = async () => {
-    const message = `${t('shareMessage')}\n\nEmergency: ${country.emergencyNumber}\nCrisis Line: ${country.crisisPhone}`;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: t('title'),
-          text: message
-        });
-      } catch (error) {
-        copyToClipboard(message);
+    const message = `${t('shareMessage')}\n\nEmergency: ${country.emergencyNumber}\nCrisis Line: ${country.crisisPhone}\n\nGlobal helplines: https://findahelpline.com`;
+    const shareUrl = 'https://findahelpline.com';
+
+    try {
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: t('title'),
+            text: message,
+            url: shareUrl,
+          });
+          return;
+        } catch {
+          // fall through to other options
+        }
       }
-    } else {
-      copyToClipboard(message);
+      // Fallback to email share
+      const subject = 'I need support';
+      const body = encodeURIComponent(message);
+      const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${body}`;
+      const opened = window.open(mailto, '_self');
+      if (!opened) {
+        await copyToClipboard(message);
+      }
+    } catch {
+      await copyToClipboard(message);
     }
   };
 
@@ -570,7 +583,11 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
                   const dest = isDialable(country.emergencyNumber)
                     ? `tel:${country.emergencyNumber.replace(/\s|-/g, '')}`
                     : 'https://findahelpline.com';
-                  window.open(dest, dest.startsWith('tel:') ? undefined : '_blank', dest.startsWith('tel:') ? undefined : 'noopener');
+                  if (dest.startsWith('tel:')) {
+                    window.location.href = dest;
+                  } else {
+                    window.open(dest, '_blank', 'noopener');
+                  }
                 }}
                 aria-label={`${t('callEmergency')} ${country.emergencyNumber}`}
                 type="button"
@@ -586,7 +603,11 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
                   const dest = isDialable(country.crisisPhone)
                     ? `tel:${country.crisisPhone.replace(/\s|-/g, '')}`
                     : 'https://findahelpline.com';
-                  window.open(dest, dest.startsWith('tel:') ? undefined : '_blank', dest.startsWith('tel:') ? undefined : 'noopener');
+                  if (dest.startsWith('tel:')) {
+                    window.location.href = dest;
+                  } else {
+                    window.open(dest, '_blank', 'noopener');
+                  }
                 }}
                 aria-label={`${t('callCrisis')} ${country.crisisPhone}`}
                 type="button"
