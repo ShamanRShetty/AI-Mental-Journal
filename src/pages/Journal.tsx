@@ -12,7 +12,7 @@ import { useAction, useQuery } from "convex/react";
 import { toast } from "sonner";
 
 export default function Journal() {
-  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [journalText, setJournalText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,6 +27,8 @@ export default function Journal() {
 
   const analyzeEntry = useAction(api.ai.analyzeJournalEntry);
   const entries = useQuery(api.journals.getUserEntries);
+  // Add: current user for guest-mode banner
+  const user = useQuery(api.users.currentUser, {});
 
   // Add: simple detector for Hindi (Devanagari) characters
   const isHindiText = (text: string) => /[\u0900-\u097F]/.test(text);
