@@ -39,6 +39,17 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     }
   });
 
+  // Add: helper to wait for anonymous auth to settle to avoid race on navigation
+  const waitForAnonymousAuth = async (timeoutMs = 3000, intervalMs = 100) => {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      // Yield to next tick
+      await new Promise((r) => setTimeout(r, intervalMs));
+      if (isAuthenticated && user && user.isAnonymous) return true;
+    }
+    return false;
+  };
+
   useEffect(() => {
     // Clear the one-time flag for future visits
     try {
@@ -96,11 +107,18 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     setIsLoading(true);
     setError(null);
     try {
-      console.log("Attempting anonymous sign in...");
       await signIn("anonymous");
-      console.log("Anonymous sign in successful");
+
+      // Wait for auth state to reflect anonymous session before navigating
+      const ready = await waitForAnonymousAuth();
       const redirect = redirectAfterAuth || "/";
-      navigate(redirect);
+
+      if (ready) {
+        navigate(redirect);
+      } else {
+        // As a fallback, still navigate; auth usually catches up shortly after
+        navigate(redirect);
+      }
     } catch (error) {
       console.error("Guest login error:", error);
       console.error("Error details:", JSON.stringify(error, null, 2));
