@@ -175,16 +175,6 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                     Continue as Guest
                   </Button>
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full mt-4"
-                    onClick={handleGuestLogin}
-                    disabled={isLoading}
-                  >
-                    <UserX className="mr-2 h-4 w-4" />
-                    Continue as Guest
-                  </Button>
                 </CardContent>
               </form>
             </>

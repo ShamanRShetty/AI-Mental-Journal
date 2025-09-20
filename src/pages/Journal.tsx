@@ -12,7 +12,7 @@ import { useAction, useQuery } from "convex/react";
 import { toast } from "sonner";
 
 export default function Journal() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const navigate = useNavigate();
   const [journalText, setJournalText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -163,13 +163,19 @@ export default function Journal() {
 
       const result = await analyzeEntry({ text: journalText, language: targetLang });
       setCurrentReflection(result.reflection);
-      
+
+      if ((result as any).saved === false) {
+        toast("You're in guest mode — entries aren't saved.", {
+          description: "Sign in with email to save your reflections.",
+        });
+      }
+
       if (result.moodScore < -0.6) {
         setShowCrisisAlert(true);
       }
-      
+
       setJournalText("");
-      toast.success("Journal entry saved successfully!");
+      toast.success("Journal entry processed.");
     } catch (error) {
       console.error("Error submitting journal entry:", error);
       toast.error("Failed to save journal entry. Please try again.");
@@ -215,6 +221,27 @@ export default function Journal() {
       </nav>
 
       <div className="max-w-4xl mx-auto px-6 py-12">
+        {/* Guest Mode Banner */}
+        {user && user.isAnonymous && (
+          <div className="mb-6">
+            <Card className="border-blue-200 bg-blue-50">
+              <CardContent className="p-4 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-blue-900">
+                    You're in guest mode — entries are not saved.
+                  </p>
+                  <p className="text-xs text-blue-800">
+                    Sign in with email to securely save your reflections and mood history.
+                  </p>
+                </div>
+                <Button asChild size="sm" variant="outline" className="shrink-0">
+                  <Link to="/auth">Sign in to save</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Crisis Alert */}
         {showCrisisAlert && (
           <motion.div

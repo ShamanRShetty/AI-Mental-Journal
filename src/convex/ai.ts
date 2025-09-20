@@ -3,6 +3,7 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { api } from "./_generated/api";
 import { action as convexAction } from "./_generated/server";
 
 // Add: widen supported languages and language name mapping
@@ -286,15 +287,22 @@ export const analyzeJournalEntry = action({
       }
     }
 
-    await ctx.runMutation(internal.journals.create, {
-      text: args.text,
-      reflection: result.reflection,
-      moodScore: result.moodScore,
-    });
+    // Determine if current user is anonymous; if so, do not persist
+    const user = await ctx.runQuery(api.users.currentUser, {});
+    let saved = false;
+    if (user && user.isAnonymous !== true) {
+      await ctx.runMutation(internal.journals.create, {
+        text: args.text,
+        reflection: result.reflection,
+        moodScore: result.moodScore,
+      });
+      saved = true;
+    }
 
     return {
       reflection: result.reflection,
       moodScore: result.moodScore,
+      saved, // indicate whether persisted or not
     };
   },
 });
