@@ -578,7 +578,7 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
             <div className="grid md:grid-cols-2 gap-4">
               <Button
                 size="lg"
-                className="h-16 text-lg bg-red-600 hover:bg-red-700 whitespace-normal break-words text-center flex-wrap"
+                className="min-h-16 py-4 text-lg bg-red-600 hover:bg-red-700 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center"
                 onClick={() => {
                   const dest = isDialable(country.emergencyNumber)
                     ? `tel:${country.emergencyNumber.replace(/\s|-/g, '')}`
@@ -598,7 +598,7 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
               
               <Button
                 size="lg"
-                className="h-16 text-lg bg-blue-600 hover:bg-blue-700 whitespace-normal break-words text-center flex-wrap"
+                className="min-h-16 py-4 text-lg bg-blue-600 hover:bg-blue-700 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center"
                 onClick={() => {
                   const dest = isDialable(country.crisisPhone)
                     ? `tel:${country.crisisPhone.replace(/\s|-/g, '')}`
@@ -642,7 +642,7 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
               <Button
                 variant="outline"
                 onClick={shareWithContact}
-                className="whitespace-normal break-words text-center flex-wrap"
+                className="whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center"
               >
                 <Share2 className="w-4 h-4 mr-2" />
                 {t('shareContact')}
