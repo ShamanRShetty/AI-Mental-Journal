@@ -18,6 +18,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { ArrowRight, Loader2, Mail, UserX } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { api } from "@/convex/_generated/api";
+import { useQuery } from "convex/react";
+import { toast } from "sonner";
 
 interface AuthProps {
   redirectAfterAuth?: string;
@@ -31,6 +34,18 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Add: fetch Google config status
+  const googleStatus = useQuery(api.config.googleStatus);
+
+  useEffect(() => {
+    if (googleStatus) {
+      if (googleStatus.hasClientId && googleStatus.hasClientSecret) {
+        toast.success("Google Sign-In is configured and ready.");
+      } else {
+        toast.error("Google Sign-In is not fully configured on the server. Please verify both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in Backend env.");
+      }
+    }
+  }, [googleStatus]);
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
       const redirect = redirectAfterAuth || "/";
