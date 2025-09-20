@@ -15,6 +15,17 @@ export default function Home() {
   const [showGuestBanner, setShowGuestBanner] = useState(false);
   const [overviewOpen, setOverviewOpen] = useState(false);
 
+  // Hide the guest banner after a full reload by clearing the 'wasGuest' flag
+  useEffect(() => {
+    try {
+      const nav = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
+      const isReload = nav && nav[0] && nav[0].type === "reload";
+      if (isReload) {
+        sessionStorage.removeItem("wasGuest");
+      }
+    } catch {}
+  }, []);
+
   // Auto sign out anonymous users on Home load/refresh so guest mode doesn't persist
   useEffect(() => {
     if (!isLoading && user && user.isAnonymous) {

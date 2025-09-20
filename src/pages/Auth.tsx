@@ -127,8 +127,8 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       </nav>
 
       {/* Auth Content */}
-      <div className="flex-1 flex items-center justify-center">
-        <div className="flex items-center justify-center h-full flex-col">
+      <div className="flex-1 flex justify-center">
+        <div className="w-full flex justify-center mt-8 mb-12">
         <Card className="min-w-[350px] pb-0 border shadow-md">
           {step === "signIn" ? (
             <>
