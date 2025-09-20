@@ -335,6 +335,12 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
     }
   }, []);
 
+  // Helper: check if a value is a dialable phone number
+  const isDialable = (value: string) => {
+    const digits = (value || "").replace(/\s|-/g, "");
+    return /^\d{2,}$/.test(digits);
+  };
+
   // Breathing exercise logic
   const startBreathing = () => {
     if (breathingActive) return;
@@ -560,8 +566,14 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
               <Button
                 size="lg"
                 className="h-16 text-lg bg-red-600 hover:bg-red-700 whitespace-normal break-words text-center flex-wrap"
-                onClick={() => window.open(`tel:${country.emergencyNumber}`)}
+                onClick={() => {
+                  const dest = isDialable(country.emergencyNumber)
+                    ? `tel:${country.emergencyNumber.replace(/\s|-/g, '')}`
+                    : 'https://findahelpline.com';
+                  window.open(dest, dest.startsWith('tel:') ? undefined : '_blank', dest.startsWith('tel:') ? undefined : 'noopener');
+                }}
                 aria-label={`${t('callEmergency')} ${country.emergencyNumber}`}
+                type="button"
               >
                 <Phone className="w-6 h-6 mr-2" />
                 {t('callEmergency')}
@@ -570,8 +582,14 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
               <Button
                 size="lg"
                 className="h-16 text-lg bg-blue-600 hover:bg-blue-700 whitespace-normal break-words text-center flex-wrap"
-                onClick={() => window.open(`tel:${country.crisisPhone}`)}
+                onClick={() => {
+                  const dest = isDialable(country.crisisPhone)
+                    ? `tel:${country.crisisPhone.replace(/\s|-/g, '')}`
+                    : 'https://findahelpline.com';
+                  window.open(dest, dest.startsWith('tel:') ? undefined : '_blank', dest.startsWith('tel:') ? undefined : 'noopener');
+                }}
                 aria-label={`${t('callCrisis')} ${country.crisisPhone}`}
+                type="button"
               >
                 <Phone className="w-6 h-6 mr-2" />
                 {t('callCrisis')}
