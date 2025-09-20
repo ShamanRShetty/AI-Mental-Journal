@@ -5,11 +5,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/use-auth";
 import { api } from "@/convex/_generated/api";
 import { motion } from "framer-motion";
-import { Heart, Send, Loader2, ArrowLeft, AlertTriangle, Mic, Square } from "lucide-react";
+import { Heart, Send, Loader2, ArrowLeft, AlertTriangle, Mic, Square, LifeBuoy } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router";
 import { useAction, useQuery } from "convex/react";
 import { toast } from "sonner";
+import CrisisSupport from "@/components/CrisisSupport";
 
 export default function Journal() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -18,6 +19,7 @@ export default function Journal() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentReflection, setCurrentReflection] = useState<string | null>(null);
   const [showCrisisAlert, setShowCrisisAlert] = useState(false);
+  const [crisisSupportOpen, setCrisisSupportOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState(""); // optional short preview
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -222,9 +224,21 @@ export default function Journal() {
               </div>
             </div>
             
-            <Button variant="outline" asChild>
-              <Link to="/dashboard">View Dashboard</Link>
-            </Button>
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCrisisSupportOpen(true)}
+                className="text-red-600 border-red-200 hover:bg-red-50"
+                aria-label="Open crisis support resources"
+              >
+                <LifeBuoy className="w-4 h-4 mr-2" />
+                Help
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/dashboard">View Dashboard</Link>
+              </Button>
+            </div>
           </div>
         </div>
       </nav>
@@ -272,24 +286,40 @@ export default function Journal() {
               <CardContent className="p-6">
                 <div className="flex items-start space-x-3">
                   <AlertTriangle className="w-6 h-6 text-orange-600 mt-1" />
-                  <div>
+                  <div className="flex-1">
                     <h3 className="font-semibold text-orange-900 mb-2">We're here for you</h3>
                     <p className="text-orange-800 mb-4">
                       It sounds like you're going through a difficult time. Remember that you're not alone, and help is available.
                     </p>
-                    <div className="space-y-2 text-sm">
+                    <div className="space-y-2 text-sm mb-4">
                       <p><strong>Crisis Text Line:</strong> Text HOME to 741741</p>
                       <p><strong>National Suicide Prevention Lifeline:</strong> 988</p>
                       <p><strong>Teen Line:</strong> 1-800-852-8336</p>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-4"
-                      onClick={() => setShowCrisisAlert(false)}
-                    >
-                      I understand
-                    </Button>
+                    <div className="flex gap-3 flex-wrap">
+                      <Button
+                        size="sm"
+                        onClick={() => setCrisisSupportOpen(true)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        <AlertTriangle className="w-4 h-4 mr-2" />
+                        Open Crisis Support
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open('tel:988')}
+                      >
+                        Call 988 (US)
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setShowCrisisAlert(false)}
+                      >
+                        I understand
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -453,6 +483,13 @@ export default function Journal() {
           </motion.div>
         </div>
       </div>
+
+      {/* Crisis Support Modal */}
+      <CrisisSupport
+        open={crisisSupportOpen}
+        onOpenChange={setCrisisSupportOpen}
+        emergencyMode={showCrisisAlert}
+      />
     </div>
   );
 }

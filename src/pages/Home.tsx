@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import CrisisSupport from "@/components/CrisisSupport";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
-import { BookOpen, BarChart3, Heart, ArrowRight, Sparkles } from "lucide-react";
+import { BookOpen, BarChart3, Heart, ArrowRight, Sparkles, AlertTriangle } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
@@ -14,6 +15,7 @@ export default function Home() {
 
   const [showGuestBanner, setShowGuestBanner] = useState(false);
   const [overviewOpen, setOverviewOpen] = useState(false);
+  const [crisisSupportOpen, setCrisisSupportOpen] = useState(false);
 
   // Ensure page starts at top on initial load/refresh
   useEffect(() => {
@@ -102,6 +104,16 @@ export default function Home() {
                       <Button variant="ghost" asChild>
                         <Link to="/dashboard">Dashboard</Link>
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCrisisSupportOpen(true)}
+                        className="text-red-600 border-red-200 hover:bg-red-50"
+                        aria-label="Open crisis support resources"
+                      >
+                        <AlertTriangle className="w-4 h-4 mr-2" />
+                        Need Help Now
+                      </Button>
                       {user && !user.isAnonymous && (
                         <Button
                           variant="outline"
@@ -121,9 +133,21 @@ export default function Home() {
                       )}
                     </div>
                   ) : (
-                    <Button asChild>
-                      <Link to="/auth">Get Started</Link>
-                    </Button>
+                    <div className="flex items-center space-x-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCrisisSupportOpen(true)}
+                        className="text-red-600 border-red-200 hover:bg-red-50"
+                        aria-label="Open crisis support resources"
+                      >
+                        <AlertTriangle className="w-4 h-4 mr-2" />
+                        Need Help Now
+                      </Button>
+                      <Button asChild>
+                        <Link to="/auth">Get Started</Link>
+                      </Button>
+                    </div>
                   )}
                 </>
               )}
@@ -292,6 +316,13 @@ export default function Home() {
           </p>
         </div>
       </footer>
+
+      {/* Crisis Support Modal */}
+      <CrisisSupport
+        open={crisisSupportOpen}
+        onOpenChange={setCrisisSupportOpen}
+        emergencyMode={false}
+      />
 
       <Dialog open={overviewOpen} onOpenChange={setOverviewOpen}>
         <DialogContent className="sm:max-w-[540px]">
