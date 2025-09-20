@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { api } from "@/convex/_generated/api";
 import { motion } from "framer-motion";
@@ -21,6 +22,7 @@ export default function Journal() {
   const [interimTranscript, setInterimTranscript] = useState(""); // optional short preview
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Array<BlobPart>>([]);
+  const [language, setLanguage] = useState<"en" | "hi">("en");
   const transcribeAudio = useAction(api.ai.transcribeAudio);
 
   const analyzeEntry = useAction(api.ai.analyzeJournalEntry);
@@ -148,7 +150,8 @@ export default function Journal() {
 
     setIsSubmitting(true);
     try {
-      const result = await analyzeEntry({ text: journalText });
+      // Update: pass selected language to backend
+      const result = await analyzeEntry({ text: journalText, language });
       setCurrentReflection(result.reflection);
       
       // Show crisis alert if mood is very negative
@@ -257,6 +260,21 @@ export default function Journal() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-gray-600">Reflection language:</span>
+                    <Select
+                      value={language}
+                      onValueChange={(val) => setLanguage(val as "en" | "hi")}
+                    >
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue placeholder="Select language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="hi">हिंदी (Hindi)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <Textarea
                     value={journalText}
                     onChange={(e) => setJournalText(e.target.value)}
