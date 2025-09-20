@@ -22,7 +22,7 @@ export default function Journal() {
   const [interimTranscript, setInterimTranscript] = useState(""); // optional short preview
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Array<BlobPart>>([]);
-  const [language, setLanguage] = useState<"en" | "hi">("en");
+  const [language, setLanguage] = useState<"en" | "hi" | "kn" | "ta" | "te" | "ml">("en");
   const transcribeAudio = useAction(api.ai.transcribeAudio);
 
   const analyzeEntry = useAction(api.ai.analyzeJournalEntry);
@@ -154,7 +154,8 @@ export default function Journal() {
     setIsSubmitting(true);
     try {
       // Auto-detect Hindi if user typed in Devanagari, but allow manual override
-      let targetLang: "en" | "hi" = language;
+      // Expand targetLang to include all supported languages
+      let targetLang: "en" | "hi" | "kn" | "ta" | "te" | "ml" = language;
       if (isHindiText(journalText) && language !== "hi") {
         targetLang = "hi";
         toast("Detected Hindi text — generating reflection in Hindi.");
@@ -272,14 +273,18 @@ export default function Journal() {
                     <span className="text-sm text-gray-600">Reflection language:</span>
                     <Select
                       value={language}
-                      onValueChange={(val) => setLanguage(val as "en" | "hi")}
+                      onValueChange={(val) => setLanguage(val as "en" | "hi" | "kn" | "ta" | "te" | "ml")}
                     >
-                      <SelectTrigger className="w-[200px]">
+                      <SelectTrigger className="w-[260px]">
                         <SelectValue placeholder="Select language" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="en">English</SelectItem>
                         <SelectItem value="hi">हिंदी (Hindi)</SelectItem>
+                        <SelectItem value="kn">ಕನ್ನಡ (Kannada)</SelectItem>
+                        <SelectItem value="ta">தமிழ் (Tamil)</SelectItem>
+                        <SelectItem value="te">తెలుగు (Telugu)</SelectItem>
+                        <SelectItem value="ml">മലയാളം (Malayalam)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

@@ -5,8 +5,22 @@ import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { action as convexAction } from "./_generated/server";
 
-// Add: helper to call Gemini REST API with retries
-async function callGeminiFlashJSON(journalText: string, language: "en" | "hi"): Promise<{ reflection: string; moodScore: number }> {
+// Add: widen supported languages and language name mapping
+type SupportedLang = "en" | "hi" | "kn" | "ta" | "te" | "ml";
+const LANGUAGE_NAMES: Record<SupportedLang, string> = {
+  en: "English",
+  hi: "Hindi",
+  kn: "Kannada",
+  ta: "Tamil",
+  te: "Telugu",
+  ml: "Malayalam",
+};
+
+// Add: helper to call Gemini REST API with retries and language support
+async function callGeminiFlashJSON(
+  journalText: string,
+  language: SupportedLang
+): Promise<{ reflection: string; moodScore: number }> {
   const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GOOGLE_API_KEY (or GEMINI_API_KEY) not set");
@@ -16,10 +30,7 @@ async function callGeminiFlashJSON(journalText: string, language: "en" | "hi"): 
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" +
     encodeURIComponent(apiKey);
 
-  const reflectionLangInstruction =
-    language === "hi"
-      ? "Write the reflection in natural, empathetic Hindi."
-      : "Write the reflection in natural, empathetic English.";
+  const reflectionLangInstruction = `Write the reflection in natural, empathetic ${LANGUAGE_NAMES[language]}.`;
 
   const prompt =
     `You are an empathetic mental wellness assistant.\n` +
@@ -32,11 +43,9 @@ async function callGeminiFlashJSON(journalText: string, language: "en" | "hi"): 
 
   const body = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
-    // Ask for structured JSON
     generationConfig: {
       responseMimeType: "application/json",
     },
-    // Relaxed safety for reflective content (still subject to provider policies)
     safetySettings: [
       { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
       { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -62,7 +71,6 @@ async function callGeminiFlashJSON(journalText: string, language: "en" | "hi"): 
       }
       const data = (await res.json()) as any;
 
-      // Parse JSON from the first candidate
       const textContent: string | undefined =
         data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
@@ -74,7 +82,6 @@ async function callGeminiFlashJSON(journalText: string, language: "en" | "hi"): 
       try {
         parsed = JSON.parse(textContent);
       } catch {
-        // Occasionally the model may wrap or add extra text. Try to extract JSON substring.
         const match = textContent.match(/\{[\s\S]*\}/);
         if (!match) throw new Error("Failed to parse JSON from Gemini response");
         parsed = JSON.parse(match[0]);
@@ -83,7 +90,6 @@ async function callGeminiFlashJSON(journalText: string, language: "en" | "hi"): 
       let reflection: string = String(parsed.reflection ?? "").trim();
       let moodScoreRaw = Number(parsed.moodScore);
       if (!Number.isFinite(moodScoreRaw)) moodScoreRaw = 0;
-      // Clamp to [-1, 1]
       const moodScore = Math.max(-1, Math.min(1, moodScoreRaw));
 
       if (!reflection) {
@@ -92,7 +98,6 @@ async function callGeminiFlashJSON(journalText: string, language: "en" | "hi"): 
       return { reflection, moodScore };
     } catch (err) {
       lastErr = err;
-      // Backoff on rate limit / server errors
       const isTransient =
         (err instanceof Error && /Transient error|429|5\d\d/.test(err.message)) ||
         false;
@@ -107,8 +112,8 @@ async function callGeminiFlashJSON(journalText: string, language: "en" | "hi"): 
   throw lastErr instanceof Error ? lastErr : new Error("Unknown Gemini error");
 }
 
-// Add: optional translator helper for fallback Hindi when Gemini key exists but main call fell back
-async function translateWithGemini(text: string, target: "hi" | "en"): Promise<string> {
+// Update: translator helper supports all added languages
+async function translateWithGemini(text: string, target: SupportedLang): Promise<string> {
   const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
   if (!apiKey) return text;
 
@@ -116,19 +121,13 @@ async function translateWithGemini(text: string, target: "hi" | "en"): Promise<s
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" +
     encodeURIComponent(apiKey);
 
-  const instruction =
-    target === "hi"
-      ? "Translate the following text into natural, empathetic Hindi appropriate for mental wellness reflections. Return only the translated text."
-      : "Translate the following text into natural, empathetic English appropriate for mental wellness reflections. Return only the translated text.";
+  const instruction = `Translate the following text into natural, empathetic ${LANGUAGE_NAMES[target]} appropriate for mental wellness reflections. Return only the translated text.`;
 
   const body = {
     contents: [
       {
         role: "user",
-        parts: [
-          { text: instruction },
-          { text: `TEXT:\n"""${text}"""` },
-        ],
+        parts: [{ text: instruction }, { text: `TEXT:\n"""${text}"""` }],
       },
     ],
     safetySettings: [
@@ -248,32 +247,42 @@ function heuristicAnalyze(rawText: string): { reflection: string; moodScore: num
 export const analyzeJournalEntry = action({
   args: {
     text: v.string(),
-    // Add: optional language
-    language: v.optional(v.union(v.literal("en"), v.literal("hi"))),
+    // Update: support more languages
+    language: v.optional(
+      v.union(
+        v.literal("en"),
+        v.literal("hi"),
+        v.literal("kn"),
+        v.literal("ta"),
+        v.literal("te"),
+        v.literal("ml"),
+      )
+    ),
   },
   handler: async (ctx, args) => {
     const raw = args.text;
-    const lang: "en" | "hi" = (args.language as "en" | "hi") ?? "en";
+    const lang: SupportedLang = (args.language as SupportedLang) ?? "en";
 
-    // Try Gemini first if key is available; otherwise or on failure, fallback to heuristic
     let result: { reflection: string; moodScore: number };
     if (process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY) {
       try {
-        // Update: request reflection directly in the target language
         result = await callGeminiFlashJSON(raw, lang);
       } catch (e) {
         console.warn("Gemini call failed, falling back to heuristic:", e);
         result = heuristicAnalyze(raw);
-        // If fallback and target is Hindi, try a quick translate when key exists
-        if (lang === "hi") {
-          result.reflection = await translateWithGemini(result.reflection, "hi");
+        // Translate heuristic reflection if target is not English and key exists
+        if (lang !== "en") {
+          result.reflection = await translateWithGemini(result.reflection, lang);
         }
       }
     } else {
       result = heuristicAnalyze(raw);
-      // No API key; if Hindi requested, we cannot translate—return English reflection
-      if (lang === "hi") {
-        result.reflection = `${result.reflection} (अनुवाद उपलब्ध नहीं — डिफ़ॉल्ट अंग्रेज़ी प्रतिबिंब दिखाया गया है)`;
+      // No API key; append note when non-English requested
+      if (lang !== "en") {
+        result.reflection =
+          lang === "hi"
+            ? `${result.reflection} (अनुवाद उपलब्ध नहीं — डिफ़ॉल्ट अंग्रेज़ी प्रतिबिंब दिखाया गया है)`
+            : `${result.reflection} (Translation unavailable — showing default English reflection)`;
       }
     }
 
