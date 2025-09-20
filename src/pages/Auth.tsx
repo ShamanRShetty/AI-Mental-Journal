@@ -24,7 +24,7 @@ interface AuthProps {
 }
 
 function Auth({ redirectAfterAuth }: AuthProps = {}) {
-  const { isLoading: authLoading, isAuthenticated, signIn } = useAuth();
+  const { isLoading: authLoading, isAuthenticated, signIn, user } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState<"signIn" | { email: string }>("signIn");
   const [otp, setOtp] = useState("");
@@ -32,11 +32,12 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
+    // Only redirect if authenticated AND not anonymous
+    if (!authLoading && isAuthenticated && user && !user.isAnonymous) {
       const redirect = redirectAfterAuth || "/";
       navigate(redirect);
     }
-  }, [authLoading, isAuthenticated, navigate, redirectAfterAuth]);
+  }, [authLoading, isAuthenticated, navigate, redirectAfterAuth, user]);
   const handleEmailSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);

@@ -236,8 +236,13 @@ export default function Journal() {
                     Sign in with email to securely save your reflections and mood history.
                   </p>
                 </div>
-                <Button asChild size="sm" variant="outline" className="shrink-0">
-                  <Link to="/auth">Sign in to save</Link>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={() => navigate("/auth")}
+                >
+                  Sign in to save
                 </Button>
               </CardContent>
             </Card>
