@@ -4,8 +4,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
 import { api } from "@/convex/_generated/api";
 import { motion } from "framer-motion";
-import { Heart, Send, Loader2, ArrowLeft, AlertTriangle } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Heart, Send, Loader2, ArrowLeft, AlertTriangle, Mic, Square } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router";
 import { useAction, useQuery } from "convex/react";
 import { toast } from "sonner";
@@ -17,6 +17,10 @@ export default function Journal() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentReflection, setCurrentReflection] = useState<string | null>(null);
   const [showCrisisAlert, setShowCrisisAlert] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [supportsSpeech, setSupportsSpeech] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState("");
+  const recognitionRef = useRef<any>(null);
 
   const analyzeEntry = useAction(api.ai.analyzeJournalEntry);
   const entries = useQuery(api.journals.getUserEntries);
@@ -26,6 +30,86 @@ export default function Journal() {
       navigate("/auth");
     }
   }, [authLoading, isAuthenticated, navigate]);
+
+  // Add: detect SpeechRecognition support and cleanup
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      setSupportsSpeech(!!SR);
+    }
+    return () => {
+      try {
+        if (recognitionRef.current) {
+          recognitionRef.current.stop();
+          recognitionRef.current = null;
+        }
+      } catch {}
+    };
+  }, []);
+
+  // Add: start/stop recording handlers
+  const startRecording = () => {
+    if (!supportsSpeech) {
+      toast.error("Voice input not supported in this browser.");
+      return;
+    }
+    if (isRecording) return;
+
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SR();
+    recognition.lang = "en-US";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+      setInterimTranscript("");
+      toast("Listening... Speak your journal entry.");
+    };
+
+    recognition.onresult = (event: any) => {
+      const res = event.results[event.results.length - 1];
+      const transcript: string = res[0]?.transcript ?? "";
+      if (res.isFinal) {
+        setJournalText((prev) => (prev ? `${prev.trim()} ${transcript.trim()}` : transcript.trim()));
+        setInterimTranscript("");
+      } else {
+        setInterimTranscript(transcript);
+      }
+    };
+
+    recognition.onerror = (e: any) => {
+      console.error("SpeechRecognition error:", e);
+      toast.error("Voice input error. Please try again.");
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+      setInterimTranscript("");
+    };
+
+    try {
+      recognition.start();
+      recognitionRef.current = recognition;
+    } catch (e) {
+      console.error("Failed to start recognition:", e);
+      toast.error("Could not start voice input.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {}
+      recognitionRef.current = null;
+    }
+    if (isRecording) {
+      setIsRecording(false);
+      setInterimTranscript("");
+      toast("Stopped listening.");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,25 +236,51 @@ export default function Journal() {
                     className="min-h-[300px] resize-none text-base leading-relaxed"
                     disabled={isSubmitting}
                   />
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    size="lg"
-                    disabled={isSubmitting || !journalText.trim()}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Analyzing...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4 mr-2" />
-                        Submit Entry
-                      </>
-                    )}
-                  </Button>
+                  {isRecording && interimTranscript && (
+                    <p className="text-sm text-gray-500">
+                      Listening: <span className="italic">{interimTranscript}</span>
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <Button
+                      type="button"
+                      variant={isRecording ? "destructive" : "outline"}
+                      onClick={isRecording ? stopRecording : startRecording}
+                      disabled={!supportsSpeech || isSubmitting}
+                      className="mr-2"
+                    >
+                      {isRecording ? (
+                        <>
+                          <Square className="w-4 h-4 mr-2" />
+                          Stop Voice
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="w-4 h-4 mr-2" />
+                          Start Voice
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      type="submit"
+                      className="ml-auto"
+                      size="lg"
+                      disabled={isSubmitting || !journalText.trim()}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4 mr-2" />
+                          Submit Entry
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </form>
               </CardContent>
             </Card>
