@@ -7,7 +7,7 @@ import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 
 export default function Home() {
-  const { isAuthenticated, isLoading, signOut } = useAuth();
+  const { isAuthenticated, isLoading, signOut, user } = useAuth();
   const navigate = useNavigate();
 
   const features = [
@@ -52,21 +52,23 @@ export default function Home() {
                       <Button variant="ghost" asChild>
                         <Link to="/dashboard">Dashboard</Link>
                       </Button>
-                      <Button
-                        variant="outline"
-                        onClick={async () => {
-                          try {
-                            await signOut();
-                            toast.success("Signed out");
-                            navigate("/");
-                          } catch (e) {
-                            console.error(e);
-                            toast.error("Failed to sign out, please try again.");
-                          }
-                        }}
-                      >
-                        Sign out
-                      </Button>
+                      {user && !user.isAnonymous && (
+                        <Button
+                          variant="outline"
+                          onClick={async () => {
+                            try {
+                              await signOut();
+                              toast.success("Signed out");
+                              navigate("/");
+                            } catch (e) {
+                              console.error(e);
+                              toast.error("Failed to sign out, please try again.");
+                            }
+                          }}
+                        >
+                          Sign out
+                        </Button>
+                      )}
                     </div>
                   ) : (
                     <Button asChild>
