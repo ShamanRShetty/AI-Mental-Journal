@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
 import { BookOpen, BarChart3, Heart, ArrowRight, Sparkles } from "lucide-react";
@@ -12,6 +13,7 @@ export default function Home() {
   const navigate = useNavigate();
 
   const [showGuestBanner, setShowGuestBanner] = useState(false);
+  const [overviewOpen, setOverviewOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -157,8 +159,13 @@ export default function Home() {
                 {isAuthenticated ? "Start Journaling" : "Get Started Free"}
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
-              <Button variant="outline" size="lg" className="text-lg px-8 py-6" asChild>
-                <Link to="#features">Learn More</Link>
+              <Button
+                variant="outline"
+                size="lg"
+                className="text-lg px-8 py-6"
+                onClick={() => setOverviewOpen(true)}
+              >
+                Learn More
               </Button>
             </div>
           </motion.div>
@@ -249,6 +256,36 @@ export default function Home() {
           </p>
         </div>
       </footer>
+
+      <Dialog open={overviewOpen} onOpenChange={setOverviewOpen}>
+        <DialogContent className="sm:max-w-[540px]">
+          <DialogHeader>
+            <DialogTitle>What is Reflect & Track?</DialogTitle>
+            <DialogDescription>
+              A safe space to write, reflect with AI, and track your mood over time.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 text-sm text-muted-foreground">
+            <div className="rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 p-4 text-gray-800">
+              Reflect & Track helps you journal privately, receive supportive AI reflections, and visualize your emotional journey.
+            </div>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>Private journaling with optional voice input</li>
+              <li>AI-powered empathetic reflections (English + 5 Indian languages)</li>
+              <li>Mood trends with simple, clear charts</li>
+              <li>Guest mode available (sign in to save your progress)</li>
+            </ul>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="ghost" onClick={() => setOverviewOpen(false)}>Close</Button>
+            <Button asChild>
+              <Link to="/journal">Start Journaling</Link>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
