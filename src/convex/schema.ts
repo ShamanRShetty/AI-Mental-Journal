@@ -32,12 +32,13 @@ const schema = defineSchema(
       role: v.optional(roleValidator), // role of the user. do not remove
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
-    // add other tables here
-
-    // tableName: defineTable({
-    //   ...
-    //   // table fields
-    // }).index("by_field", ["field"])
+    // Journal entries table
+    journals: defineTable({
+      userId: v.id("users"),
+      text: v.string(),
+      reflection: v.string(),
+      moodScore: v.number(), // -1 to 1 scale
+    }).index("by_user_id", ["userId"]),
   },
   {
     schemaValidation: false,
