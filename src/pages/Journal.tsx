@@ -28,6 +28,9 @@ export default function Journal() {
   const analyzeEntry = useAction(api.ai.analyzeJournalEntry);
   const entries = useQuery(api.journals.getUserEntries);
 
+  // Add: simple detector for Hindi (Devanagari) characters
+  const isHindiText = (text: string) => /[\u0900-\u097F]/.test(text);
+
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       navigate("/auth");
@@ -150,11 +153,16 @@ export default function Journal() {
 
     setIsSubmitting(true);
     try {
-      // Update: pass selected language to backend
-      const result = await analyzeEntry({ text: journalText, language });
+      // Auto-detect Hindi if user typed in Devanagari, but allow manual override
+      let targetLang: "en" | "hi" = language;
+      if (isHindiText(journalText) && language !== "hi") {
+        targetLang = "hi";
+        toast("Detected Hindi text — generating reflection in Hindi.");
+      }
+
+      const result = await analyzeEntry({ text: journalText, language: targetLang });
       setCurrentReflection(result.reflection);
       
-      // Show crisis alert if mood is very negative
       if (result.moodScore < -0.6) {
         setShowCrisisAlert(true);
       }
