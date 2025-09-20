@@ -42,7 +42,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       if (googleStatus.hasClientId && googleStatus.hasClientSecret) {
         toast.success("Google Sign-In is configured and ready.");
       } else {
-        toast.error("Google Sign-In is not fully configured on the server. Please verify both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in Backend env.");
+        toast.error("Google Sign-In is not fully configured on the server. Please verify GOOGLE_CLIENT_ID/SECRET or AUTH_GOOGLE_ID/SECRET in Backend env.");
       }
     }
   }, [googleStatus]);
