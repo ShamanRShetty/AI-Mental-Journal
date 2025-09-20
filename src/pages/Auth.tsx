@@ -199,6 +199,30 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                     Continue with Google
                   </Button>
 
+                  {/* Add: Quick diagnostics to verify Redirect URI and Site URL */}
+                  {googleStatus && (
+                    <div className="text-xs text-muted-foreground space-y-1 mb-2">
+                      {googleStatus.siteUrl ? (
+                        <>
+                          <p className="font-medium text-foreground">Google OAuth Redirect URI</p>
+                          <p className="break-all px-2 py-1 rounded border bg-muted">
+                            {googleStatus.redirectUri}
+                          </p>
+                          <p className="mt-1">
+                            Authorized JavaScript origin:{" "}
+                            <span className="px-1 py-0.5 rounded border bg-muted">
+                              {window.location.origin}
+                            </span>
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-amber-600">
+                          Tip: Set CONVEX_SITE_URL in Backend env to surface the exact redirect URI.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <Button
                     type="button"
                     variant="outline"
