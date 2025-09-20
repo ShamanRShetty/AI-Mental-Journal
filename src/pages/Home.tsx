@@ -15,6 +15,19 @@ export default function Home() {
   const [showGuestBanner, setShowGuestBanner] = useState(false);
   const [overviewOpen, setOverviewOpen] = useState(false);
 
+  // Auto sign out anonymous users on Home load/refresh so guest mode doesn't persist
+  useEffect(() => {
+    if (!isLoading && user && user.isAnonymous) {
+      (async () => {
+        try {
+          await signOut();
+        } catch (e) {
+          console.error("Auto sign-out failed:", e);
+        }
+      })();
+    }
+  }, [isLoading, user, signOut]);
+
   useEffect(() => {
     try {
       const visited = sessionStorage.getItem("visitedJournal") === "true";
