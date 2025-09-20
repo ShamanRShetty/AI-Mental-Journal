@@ -9,50 +9,109 @@ export const analyzeJournalEntry = action({
     text: v.string(),
   },
   handler: async (ctx, args) => {
-    // For now, we'll create a simple sentiment analysis
-    // In a real implementation, you would integrate with Google Gemini API
-    const text = args.text.toLowerCase();
-    
-    // Simple keyword-based sentiment analysis
-    const positiveWords = ['happy', 'joy', 'good', 'great', 'amazing', 'wonderful', 'excited', 'love', 'grateful', 'blessed'];
-    const negativeWords = ['sad', 'angry', 'frustrated', 'depressed', 'anxious', 'worried', 'hate', 'terrible', 'awful', 'stressed'];
-    
-    let positiveCount = 0;
-    let negativeCount = 0;
-    
-    positiveWords.forEach(word => {
-      if (text.includes(word)) positiveCount++;
-    });
-    
-    negativeWords.forEach(word => {
-      if (text.includes(word)) negativeCount++;
-    });
-    
-    // Calculate mood score between -1 and 1
-    let moodScore = 0;
-    if (positiveCount > negativeCount) {
-      moodScore = Math.min(0.8, positiveCount * 0.2);
-    } else if (negativeCount > positiveCount) {
-      moodScore = Math.max(-0.8, -negativeCount * 0.2);
+    // Enhanced heuristic analysis for more varied, content-specific reflections
+    const raw = args.text;
+    const text = raw.toLowerCase();
+
+    // Expanded keyword lists
+    const positiveWords = [
+      "happy","joy","good","great","amazing","wonderful","excited","love","grateful","blessed",
+      "calm","proud","relaxed","hopeful","peaceful","confident","energized","progress","success","fun"
+    ];
+    const negativeWords = [
+      "sad","angry","frustrated","depressed","anxious","worried","hate","terrible","awful","stressed",
+      "overwhelmed","lonely","tired","guilty","scared","fear","pain","failure","regret","hurt"
+    ];
+
+    // Basic tokenization
+    const tokens = raw
+      .replace(/[^\p{L}\p{N}\s']/gu, " ")
+      .split(/\s+/)
+      .filter(Boolean);
+
+    // Stopwords for keyword extraction
+    const stopwords = new Set<string>([
+      "i","me","my","myself","we","our","ours","ourselves","you","your","yours","yourself","yourselves",
+      "he","him","his","himself","she","her","hers","herself","it","its","itself","they","them","their",
+      "theirs","themselves","what","which","who","whom","this","that","these","those","am","is","are",
+      "was","were","be","been","being","have","has","had","having","do","does","did","doing","a","an",
+      "the","and","but","if","or","because","as","until","while","of","at","by","for","with","about",
+      "against","between","into","through","during","before","after","above","below","to","from","up",
+      "down","in","out","on","off","over","under","again","further","then","once","here","there","when",
+      "where","why","how","all","any","both","each","few","more","most","other","some","such","no","nor",
+      "not","only","own","same","so","than","too","very","can","will","just","don","should","now"
+    ]);
+
+    // Count sentiment hits (weighted by occurrences)
+    let pos = 0;
+    let neg = 0;
+    for (const t of tokens) {
+      if (positiveWords.includes(t.toLowerCase())) pos += 1;
+      if (negativeWords.includes(t.toLowerCase())) neg += 1;
     }
-    
-    // Generate empathetic reflection based on mood
+
+    // Mood score normalized to [-1, 1]
+    // (pos - neg) / (pos + neg + smoothing)
+    const smoothing = 1;
+    let moodScore = (pos - neg) / (pos + neg + smoothing);
+    if (Number.isNaN(moodScore)) moodScore = 0;
+    moodScore = Math.max(-1, Math.min(1, moodScore));
+
+    // Keyword extraction for personalization
+    const freq: Record<string, number> = {};
+    for (const t of tokens) {
+      const w = t.toLowerCase();
+      if (stopwords.has(w)) continue;
+      if (w.length < 4) continue;
+      freq[w] = (freq[w] || 0) + 1;
+    }
+    const keywords = Object.entries(freq)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([w]) => w);
+
+    const mention =
+      keywords.length > 0
+        ? ` You mentioned ${keywords
+            .map((w) => `"${w}"`)
+            .join(", ")} — thanks for opening up about that.`
+        : "";
+
+    // Tailored reflection by mood band with personalization
     let reflection = "";
-    if (moodScore > 0.3) {
-      reflection = "It's wonderful to hear the positivity in your words! Your feelings are valid and it's beautiful that you're taking time to reflect on the good moments in your life.";
-    } else if (moodScore < -0.3) {
-      reflection = "I hear that you're going through a difficult time right now. Your feelings are completely valid, and it takes courage to express them. Remember that challenging moments are temporary.";
+    if (moodScore > 0.45) {
+      reflection =
+        "It's uplifting to sense the positive energy in what you shared. Celebrate these wins and the strength you're building." +
+        mention +
+        " Keep noticing what supports your well-being and carry that forward.";
+    } else if (moodScore > 0.15) {
+      reflection =
+        "There's a gentle optimism in your words. Even small steps can nurture momentum." +
+        mention +
+        " Consider one simple action that would help you feel grounded today.";
+    } else if (moodScore > -0.15) {
+      reflection =
+        "Your entry reflects a balanced mix of feelings. It's okay to hold complexity—both ease and challenge can coexist." +
+        mention +
+        " Try a brief check-in: what do you need most right now—rest, support, or expression?";
+    } else if (moodScore > -0.45) {
+      reflection =
+        "It sounds like things are weighing on you. Your feelings are valid, and writing them out is a powerful step." +
+        mention +
+        " Consider a compassionate pause: slow breaths, a short walk, or reaching out to someone you trust.";
     } else {
-      reflection = "Thank you for sharing your thoughts with me. It's important to acknowledge all of our feelings, both positive and challenging ones. You're doing great by taking time for self-reflection.";
+      reflection =
+        "I'm hearing real heaviness in what you shared. You're not alone, and it's brave to express this." +
+        mention +
+        " If the weight feels overwhelming, please consider talking to someone you trust or a professional—support can make a difference.";
     }
-    
-    // Save the journal entry using the mutation directly
+
     await ctx.runMutation(internal.journals.create, {
       text: args.text,
       reflection,
       moodScore,
     });
-    
+
     return {
       reflection,
       moodScore,
