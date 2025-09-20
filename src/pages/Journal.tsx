@@ -18,10 +18,10 @@ export default function Journal() {
   const [currentReflection, setCurrentReflection] = useState<string | null>(null);
   const [showCrisisAlert, setShowCrisisAlert] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [supportsSpeech, setSupportsSpeech] = useState(false);
-  const [interimTranscript, setInterimTranscript] = useState("");
-  const recognitionRef = useRef<any>(null);
-  const networkRetryRef = useRef<number>(0);
+  const [interimTranscript, setInterimTranscript] = useState(""); // optional short preview
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Array<BlobPart>>([]);
+  const transcribeAudio = useAction(api.ai.transcribeAudio);
 
   const analyzeEntry = useAction(api.ai.analyzeJournalEntry);
   const entries = useQuery(api.journals.getUserEntries);
@@ -32,150 +32,110 @@ export default function Journal() {
     }
   }, [authLoading, isAuthenticated, navigate]);
 
-  // Add: detect SpeechRecognition support and cleanup
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      // Require secure context for most browsers (https or localhost)
-      setSupportsSpeech(!!SR && window.isSecureContext === true);
-    }
     return () => {
       try {
-        if (recognitionRef.current) {
-          recognitionRef.current.stop();
-          recognitionRef.current = null;
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+          mediaRecorderRef.current.stop();
         }
       } catch {}
+      mediaRecorderRef.current = null;
+      chunksRef.current = [];
     };
   }, []);
 
-  // Stop recognition when the tab becomes hidden to avoid errors
   useEffect(() => {
     const onVisibility = () => {
-      if (document.hidden) {
+      if (document.hidden && mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
         try {
-          if (recognitionRef.current) {
-            recognitionRef.current.stop();
-            recognitionRef.current = null;
-          }
+          mediaRecorderRef.current.stop();
         } catch {}
-        if (isRecording) {
-          setIsRecording(false);
-          setInterimTranscript("");
-        }
+        setIsRecording(false);
+        setInterimTranscript("");
       }
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [isRecording]);
+  }, []);
 
-  // Add: start/stop recording handlers
   const startRecording = async () => {
-    if (!supportsSpeech) {
-      toast.error("Voice input not available. Use Chrome/Edge on HTTPS (or localhost) and try again.");
-      return;
-    }
     if (isRecording) return;
 
-    // Request microphone permission up front; if blocked, give a clear error
+    // Request mic permission and start recording
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Immediately stop tracks; SpeechRecognition will handle audio
-      stream.getTracks().forEach((t) => t.stop());
-    } catch (permErr) {
-      toast.error("Microphone permission denied. Please allow mic access in your browser settings.");
-      return;
-    }
+      const mr = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      chunksRef.current = [];
 
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new SR();
-    recognition.lang = "en-US";
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-
-    // Reset retry counter each start
-    networkRetryRef.current = 0;
-
-    recognition.onstart = () => {
-      setIsRecording(true);
-      setInterimTranscript("");
-      toast("Listening... Speak your journal entry.");
-    };
-
-    recognition.onresult = (event: any) => {
-      const res = event.results[event.results.length - 1];
-      const transcript: string = res[0]?.transcript ?? "";
-      if (res.isFinal) {
-        setJournalText((prev) => (prev ? `${prev.trim()} ${transcript.trim()}` : transcript.trim()));
-        setInterimTranscript("");
-      } else {
-        setInterimTranscript(transcript);
-      }
-    };
-
-    recognition.onerror = (e: any) => {
-      console.error("SpeechRecognition error:", e);
-      const code = e?.error || e?.name;
-
-      // Add: transient network retry logic
-      if (code === "network") {
-        if (networkRetryRef.current < 2) {
-          networkRetryRef.current += 1;
-          toast("Voice service had a network hiccup, retrying...");
-          try {
-            recognition.stop();
-          } catch {}
-          setTimeout(() => {
-            try {
-              recognition.start();
-            } catch (restartErr) {
-              console.error("Failed to restart recognition after network error:", restartErr);
-              toast.error("Network error with voice service. Check your connection and retry.");
-            }
-          }, 400);
-          return;
+      mr.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          chunksRef.current.push(e.data);
         }
-        toast.error("Network error with voice service. Check your connection (VPN/Adblock/Firewall) and retry.");
-        return;
-      }
+      };
 
-      if (code === "not-allowed") {
-        toast.error("Microphone access was blocked. Please allow it in site settings.");
-      } else if (code === "no-speech") {
-        toast.error("No speech detected. Try speaking louder and closer to the mic.");
-      } else if (code === "aborted") {
-        toast.error("Voice input aborted. Try again.");
+      mr.onstart = () => {
+        setIsRecording(true);
+        setInterimTranscript("Listening...");
+        toast("Listening... Speak your journal entry.");
+      };
+
+      mr.onstop = async () => {
+        setIsRecording(false);
+        setInterimTranscript("");
+        try {
+          const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
+          chunksRef.current = [];
+
+          // Stop all tracks
+          stream.getTracks().forEach((t) => t.stop());
+
+          const arrayBuffer = await blob.arrayBuffer();
+          const base64 = btoa(
+            String.fromCharCode(...new Uint8Array(arrayBuffer))
+          );
+
+          const result = await transcribeAudio({
+            audioBase64: base64,
+            mimeType: blob.type || "audio/webm",
+          });
+
+          const transcriptText = (result as any)?.transcript?.trim();
+          if (transcriptText) {
+            setJournalText((prev) => (prev ? `${prev.trim()} ${transcriptText}` : transcriptText));
+            toast.success("Transcribed and added to your entry.");
+          } else {
+            toast.error("No transcription received. Please try again.");
+          }
+        } catch (err) {
+          console.error("Transcription error:", err);
+          toast.error("Failed to transcribe audio. Please try again.");
+        } finally {
+          mediaRecorderRef.current = null;
+        }
+      };
+
+      mr.start();
+      mediaRecorderRef.current = mr;
+    } catch (err: any) {
+      console.error("Microphone error:", err);
+      if (err?.name === "NotAllowedError") {
+        toast.error("Microphone permission denied. Please allow mic access in your browser settings.");
+      } else if (err?.name === "NotFoundError") {
+        toast.error("No microphone found. Please connect a mic and try again.");
+      } else if (location.protocol !== "https:" && location.hostname !== "localhost") {
+        toast.error("Voice input requires HTTPS (or localhost). Please switch to a secure context.");
       } else {
-        toast.error("Voice input error. Please try again.");
+        toast.error("Could not start recording. Please try again.");
       }
-    };
-
-    recognition.onend = () => {
-      setIsRecording(false);
-      setInterimTranscript("");
-    };
-
-    try {
-      recognition.start();
-      recognitionRef.current = recognition;
-    } catch (e) {
-      console.error("Failed to start recognition:", e);
-      toast.error("Could not start voice input. Try another browser or check HTTPS.");
     }
   };
 
   const stopRecording = () => {
-    if (recognitionRef.current) {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       try {
-        recognitionRef.current.stop();
+        mediaRecorderRef.current.stop();
+        toast("Stopped listening.");
       } catch {}
-      recognitionRef.current = null;
-    }
-    if (isRecording) {
-      setIsRecording(false);
-      setInterimTranscript("");
-      toast("Stopped listening.");
     }
   };
 
@@ -314,7 +274,7 @@ export default function Journal() {
                       type="button"
                       variant={isRecording ? "destructive" : "outline"}
                       onClick={isRecording ? stopRecording : startRecording}
-                      disabled={!supportsSpeech || isSubmitting}
+                      disabled={isSubmitting}
                       className="mr-2"
                     >
                       {isRecording ? (

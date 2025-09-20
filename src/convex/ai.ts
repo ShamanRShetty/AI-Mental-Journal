@@ -3,6 +3,7 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { action as convexAction } from "./_generated/server";
 
 // Add: helper to call Gemini REST API with retries
 async function callGeminiFlashJSON(journalText: string): Promise<{ reflection: string; moodScore: number }> {
@@ -217,5 +218,84 @@ export const analyzeJournalEntry = action({
       reflection: result.reflection,
       moodScore: result.moodScore,
     };
+  },
+});
+
+export const transcribeAudio = convexAction({
+  args: {
+    audioBase64: v.string(),
+    mimeType: v.string(), // e.g., "audio/webm" or "audio/webm;codecs=opus"
+  },
+  handler: async (ctx, args) => {
+    const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GOOGLE_API_KEY (or GEMINI_API_KEY) not set");
+    }
+
+    const url =
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" +
+      encodeURIComponent(apiKey);
+
+    // Prompt Gemini to transcribe clearly to plain text (no punctuation is okay)
+    const parts: any[] = [
+      {
+        text:
+          "You are a helpful transcription assistant. Transcribe the following audio to plain text suitable for journaling. Return only the transcription text without any extra commentary.",
+      },
+      {
+        inlineData: {
+          data: args.audioBase64,
+          mimeType: args.mimeType,
+        },
+      },
+    ];
+
+    const body = {
+      contents: [{ role: "user", parts }],
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+      ],
+    };
+
+    let lastErr: unknown = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          if (res.status === 429 || (res.status >= 500 && res.status < 600)) {
+            throw new Error(`Transient error ${res.status}`);
+          }
+          const text = await res.text();
+          throw new Error(`Gemini STT error ${res.status}: ${text}`);
+        }
+        const data = (await res.json()) as any;
+
+        const transcript: string | undefined =
+          data?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text).join(" ").trim();
+
+        if (!transcript) {
+          throw new Error("No transcription text returned by Gemini");
+        }
+        return { transcript };
+      } catch (err) {
+        lastErr = err;
+        const isTransient =
+          (err instanceof Error && /Transient error|429|5\d\d/.test(err.message)) || false;
+        if (isTransient && attempt < 2) {
+          const backoff = Math.min(800 * Math.pow(2, attempt) + Math.random() * 300, 4000);
+          await new Promise((r) => setTimeout(r, backoff));
+          continue;
+        }
+        break;
+      }
+    }
+    throw lastErr instanceof Error ? lastErr : new Error("Unknown Gemini STT error");
   },
 });
