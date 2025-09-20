@@ -18,9 +18,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { ArrowRight, Loader2, Mail, UserX } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { api } from "@/convex/_generated/api";
-import { useQuery } from "convex/react";
-import { toast } from "sonner";
 
 interface AuthProps {
   redirectAfterAuth?: string;
@@ -34,18 +31,6 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Add: fetch Google config status
-  const googleStatus = useQuery(api.config.googleStatus);
-
-  useEffect(() => {
-    if (googleStatus) {
-      if (googleStatus.hasClientId && googleStatus.hasClientSecret) {
-        toast.success("Google Sign-In is configured and ready.");
-      } else {
-        toast.error("Google Sign-In is not fully configured on the server. Please verify GOOGLE_CLIENT_ID/SECRET or AUTH_GOOGLE_ID/SECRET in Backend env.");
-      }
-    }
-  }, [googleStatus]);
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
       const redirect = redirectAfterAuth || "/";
@@ -183,45 +168,12 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   <Button
                     type="button"
                     className="w-full mb-4"
-                    onClick={() => {
-                      setIsLoading(true);
-                      setError(null);
-                      Promise.resolve(signIn("google")).catch((err) => {
-                        console.error("Google sign-in error:", err);
-                        setError(
-                          err instanceof Error ? err.message : "Failed to sign in with Google."
-                        );
-                        setIsLoading(false);
-                      });
-                    }}
+                    onClick={handleGuestLogin}
                     disabled={isLoading}
                   >
-                    Continue with Google
+                    <UserX className="mr-2 h-4 w-4" />
+                    Continue as Guest
                   </Button>
-
-                  {/* Add: Quick diagnostics to verify Redirect URI and Site URL */}
-                  {googleStatus && (
-                    <div className="text-xs text-muted-foreground space-y-1 mb-2">
-                      {googleStatus.siteUrl ? (
-                        <>
-                          <p className="font-medium text-foreground">Google OAuth Redirect URI</p>
-                          <p className="break-all px-2 py-1 rounded border bg-muted">
-                            {googleStatus.redirectUri}
-                          </p>
-                          <p className="mt-1">
-                            Authorized JavaScript origin:{" "}
-                            <span className="px-1 py-0.5 rounded border bg-muted">
-                              {window.location.origin}
-                            </span>
-                          </p>
-                        </>
-                      ) : (
-                        <p className="text-amber-600">
-                          Tip: Set CONVEX_SITE_URL in Backend env to surface the exact redirect URI.
-                        </p>
-                      )}
-                    </div>
-                  )}
 
                   <Button
                     type="button"
