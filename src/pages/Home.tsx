@@ -20,6 +20,10 @@ export default function Home() {
     if (!isLoading && user && user.isAnonymous) {
       (async () => {
         try {
+          // Remember guest mode for this session before signing out
+          try {
+            sessionStorage.setItem("wasGuest", "true");
+          } catch {}
           await signOut();
         } catch (e) {
           console.error("Auto sign-out failed:", e);
@@ -31,7 +35,8 @@ export default function Home() {
   useEffect(() => {
     try {
       const visited = sessionStorage.getItem("visitedJournal") === "true";
-      setShowGuestBanner(Boolean(user && user.isAnonymous && visited));
+      const wasGuest = sessionStorage.getItem("wasGuest") === "true";
+      setShowGuestBanner(Boolean(visited && (user?.isAnonymous || wasGuest)));
     } catch {
       setShowGuestBanner(false);
     }
