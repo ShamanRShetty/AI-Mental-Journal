@@ -82,6 +82,27 @@ export default function Home() {
         </div>
       </nav>
 
+      {/* Guest Mode Banner on Home */}
+      {user && user.isAnonymous && (
+        <div className="max-w-6xl mx-auto px-6 mt-6">
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-blue-900">
+                  You're in guest mode — your progress isn't saved.
+                </p>
+                <p className="text-xs text-blue-800">
+                  Sign in with email to securely save your journal and mood history.
+                </p>
+              </div>
+              <Button asChild size="sm" variant="outline" className="shrink-0">
+                <Link to="/auth">Sign in to save</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Hero Section */}
       <section className="py-24 px-6">
         <div className="max-w-6xl mx-auto text-center">
