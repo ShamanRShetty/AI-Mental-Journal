@@ -35,7 +35,8 @@ export default function Journal() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      setSupportsSpeech(!!SR);
+      // Require secure context for most browsers (https or localhost)
+      setSupportsSpeech(!!SR && window.isSecureContext === true);
     }
     return () => {
       try {
@@ -47,19 +48,50 @@ export default function Journal() {
     };
   }, []);
 
+  // Stop recognition when the tab becomes hidden to avoid errors
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.hidden) {
+        try {
+          if (recognitionRef.current) {
+            recognitionRef.current.stop();
+            recognitionRef.current = null;
+          }
+        } catch {}
+        if (isRecording) {
+          setIsRecording(false);
+          setInterimTranscript("");
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [isRecording]);
+
   // Add: start/stop recording handlers
-  const startRecording = () => {
+  const startRecording = async () => {
     if (!supportsSpeech) {
-      toast.error("Voice input not supported in this browser.");
+      toast.error("Voice input not available. Use Chrome/Edge on HTTPS (or localhost) and try again.");
       return;
     }
     if (isRecording) return;
+
+    // Request microphone permission up front; if blocked, give a clear error
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Immediately stop tracks; SpeechRecognition will handle audio
+      stream.getTracks().forEach((t) => t.stop());
+    } catch (permErr) {
+      toast.error("Microphone permission denied. Please allow mic access in your browser settings.");
+      return;
+    }
 
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SR();
     recognition.lang = "en-US";
     recognition.continuous = true;
     recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
       setIsRecording(true);
@@ -80,7 +112,18 @@ export default function Journal() {
 
     recognition.onerror = (e: any) => {
       console.error("SpeechRecognition error:", e);
-      toast.error("Voice input error. Please try again.");
+      const code = e?.error || e?.name;
+      if (code === "not-allowed") {
+        toast.error("Microphone access was blocked. Please allow it in site settings.");
+      } else if (code === "no-speech") {
+        toast.error("No speech detected. Try speaking louder and closer to the mic.");
+      } else if (code === "aborted") {
+        toast.error("Voice input aborted. Try again.");
+      } else if (code === "network") {
+        toast.error("Network error with voice service. Check your connection and retry.");
+      } else {
+        toast.error("Voice input error. Please try again.");
+      }
     };
 
     recognition.onend = () => {
@@ -93,7 +136,7 @@ export default function Journal() {
       recognitionRef.current = recognition;
     } catch (e) {
       console.error("Failed to start recognition:", e);
-      toast.error("Could not start voice input.");
+      toast.error("Could not start voice input. Try another browser or check HTTPS.");
     }
   };
 
