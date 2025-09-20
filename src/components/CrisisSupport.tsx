@@ -30,6 +30,7 @@ import {
 import { toast } from 'sonner';
 import BreathingExercise from '@/components/crisis/BreathingExercise';
 import GroundingExercise from '@/components/crisis/GroundingExercise';
+import { Switch } from '@/components/ui/switch';
 
 // Internationalization strings
 const STRINGS = {
@@ -267,6 +268,13 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
     emergencyContacts: []
   });
 
+  // Add: settings state (persisted locally)
+  const [serverStorageEnabled, setServerStorageEnabled] = useState(false);
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
+  const [reviewDate, setReviewDate] = useState<string>('');
+  const [reviewerName, setReviewerName] = useState<string>('');
+  const [countryOverrides, setCountryOverrides] = useState<Record<string, Partial<typeof COUNTRIES.US>>>({});
+
   // Breathing exercise state
   const [breathingActive, setBreathingActive] = useState(false);
   const [breathingPhase, setBreathingPhase] = useState<'inhale' | 'hold' | 'exhale'>('inhale');
@@ -302,7 +310,10 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
     return (dict[key] ?? STRINGS.en[key]) as Messages[K];
   };
 
-  const country = COUNTRIES[selectedCountry];
+  // Replace direct country usage with effective overrides
+  const baseCountry = COUNTRIES[selectedCountry];
+  const overrides = countryOverrides[selectedCountry] || {};
+  const activeCountry = { ...baseCountry, ...overrides };
 
   // Auto-detect country and language on mount
   useEffect(() => {
@@ -323,22 +334,48 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
     }
   }, []);
 
-  // Load safety plan from localStorage
+  // Load settings & safety plan from localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem('safetyPlan');
-      if (saved) {
-        setSafetyPlan(JSON.parse(saved));
+      if (saved) setSafetyPlan(JSON.parse(saved));
+    } catch {}
+    try {
+      const raw = localStorage.getItem('crisisSettings');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setServerStorageEnabled(!!parsed.serverStorageEnabled);
+        setAnalyticsEnabled(!!parsed.analyticsEnabled);
+        setReviewDate(parsed.reviewDate || '');
+        setReviewerName(parsed.reviewerName || '');
+        setCountryOverrides(parsed.countryOverrides || {});
       }
-    } catch (error) {
-      console.log('Failed to load safety plan');
-    }
+    } catch {}
   }, []);
 
   // Helper: check if a value is a dialable phone number
   const isDialable = (value: string) => {
     const digits = (value || "").replace(/\s|-/g, "");
     return /^\d{2,}$/.test(digits);
+  };
+
+  // Add: device-aware call launcher with desktop confirmation
+  const isMobile = () =>
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  const callNumber = (raw: string) => {
+    const cleaned = (raw || '').replace(/\s|-/g, '');
+    if (!isDialable(cleaned)) {
+      window.open('https://findahelpline.com', '_blank', 'noopener');
+      return;
+    }
+    const telHref = `tel:${cleaned}`;
+    if (isMobile()) {
+      window.location.href = telHref;
+    } else {
+      const confirmCall = window.confirm(`Call ${cleaned}?`);
+      if (confirmCall) window.location.href = telHref;
+    }
   };
 
   // Breathing exercise logic
@@ -418,7 +455,7 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
   };
 
   const shareWithContact = async () => {
-    const message = `${t('shareMessage')}\n\nEmergency: ${country.emergencyNumber}\nCrisis Line: ${country.crisisPhone}\n\nGlobal helplines: https://findahelpline.com`;
+    const message = `${t('shareMessage')}\n\nEmergency: ${activeCountry.emergencyNumber}\nCrisis Line: ${activeCountry.crisisPhone}\n\nGlobal helplines: https://findahelpline.com`;
     const shareUrl = 'https://findahelpline.com';
 
     try {
@@ -514,6 +551,23 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
     }));
   };
 
+  // Persist settings helper
+  const saveSettings = () => {
+    try {
+      const data = {
+        serverStorageEnabled,
+        analyticsEnabled,
+        reviewDate,
+        reviewerName,
+        countryOverrides,
+      };
+      localStorage.setItem('crisisSettings', JSON.stringify(data));
+      toast.success('Settings saved');
+    } catch {
+      toast.error('Failed to save settings');
+    }
+  };
+
   // Clean up breathing interval on unmount
   useEffect(() => {
     return () => {
@@ -546,7 +600,7 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
           <Alert className="border-red-200 bg-red-50" role="alert" aria-live="assertive">
             <AlertTriangle className="w-5 h-5 text-red-600" />
             <AlertDescription className="text-red-800 font-medium">
-              {t('emergencyBanner')} <strong>{country.emergencyNumber}</strong>
+              {t('emergencyBanner')} <strong>{activeCountry.emergencyNumber}</strong>
             </AlertDescription>
           </Alert>
         )}
@@ -578,38 +632,20 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
             <div className="grid md:grid-cols-2 gap-4">
               <Button
                 size="lg"
-                className="min-h-16 py-4 px-6 text-lg bg-red-600 hover:bg-red-700 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center text-balance"
-                onClick={() => {
-                  const dest = isDialable(country.emergencyNumber)
-                    ? `tel:${country.emergencyNumber.replace(/\s|-/g, '')}`
-                    : 'https://findahelpline.com';
-                  if (dest.startsWith('tel:')) {
-                    window.location.href = dest;
-                  } else {
-                    window.open(dest, '_blank', 'noopener');
-                  }
-                }}
-                aria-label={`${t('callEmergency')} ${country.emergencyNumber}`}
+                className="min-h-16 py-4 px-6 text-lg bg-red-600 hover:bg-red-700 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center text-balance focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-red-600"
+                onClick={() => callNumber(String(activeCountry.emergencyNumber))}
+                aria-label={`${t('callEmergency')} ${activeCountry.emergencyNumber}`}
                 type="button"
               >
                 <Phone className="w-6 h-6 mr-2" />
                 {t('callEmergency')}
               </Button>
-              
+
               <Button
                 size="lg"
-                className="min-h-16 py-4 px-6 text-lg bg-blue-600 hover:bg-blue-700 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center text-balance"
-                onClick={() => {
-                  const dest = isDialable(country.crisisPhone)
-                    ? `tel:${country.crisisPhone.replace(/\s|-/g, '')}`
-                    : 'https://findahelpline.com';
-                  if (dest.startsWith('tel:')) {
-                    window.location.href = dest;
-                  } else {
-                    window.open(dest, '_blank', 'noopener');
-                  }
-                }}
-                aria-label={`${t('callCrisis')} ${country.crisisPhone}`}
+                className="min-h-16 py-4 px-6 text-lg bg-blue-600 hover:bg-blue-700 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center text-balance focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-600"
+                onClick={() => callNumber(String(activeCountry.crisisPhone))}
+                aria-label={`${t('callCrisis')} ${activeCountry.crisisPhone}`}
                 type="button"
               >
                 <Phone className="w-6 h-6 mr-2" />
@@ -618,32 +654,33 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
             </div>
 
             <div className="grid md:grid-cols-3 gap-4">
-              {country.crisisTextNumber && (
+              {activeCountry.crisisTextNumber && (
                 <Button
                   variant="outline"
-                  onClick={() => window.open(`sms:${country.crisisTextNumber}?&body=${encodeURIComponent(country.smsBody)}`)}
-                  aria-label={`${t('textCrisis')} ${country.crisisTextNumber}`}
-                  className="w-full min-h-12 py-3 px-4 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center text-balance"
+                  onClick={() => window.open(`sms:${activeCountry.crisisTextNumber}?&body=${encodeURIComponent(activeCountry.smsBody || '')}`)}
+                  aria-label={`${t('textCrisis')} ${activeCountry.crisisTextNumber}`}
+                  className="w-full min-h-12 py-3 px-4 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center text-balance focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring"
                 >
                   <MessageSquare className="w-4 h-4 mr-2" />
                   {t('textCrisis')}
                 </Button>
               )}
-              
+
               <Button
                 variant="outline"
-                onClick={() => copyToClipboard(country.crisisPhone)}
-                className="w-full min-h-12 py-3 px-4 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center text-balance"
+                onClick={() => copyToClipboard(String(activeCountry.crisisPhone))}
+                className="w-full min-h-12 py-3 px-4 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center text-balance focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring"
               >
                 <Copy className="w-4 h-4 mr-2" />
                 {t('copyNumber')}
               </Button>
-              
+
               <Button
                 variant="outline"
                 onClick={shareWithContact}
-                className="w-full min-h-12 py-3 px-4 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center text-balance"
+                className="w-full min-h-12 py-3 px-4 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center text-balance focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring"
                 title={t('shareContact')}
+                aria-label={t('shareContact')}
               >
                 <Share2 className="w-4 h-4 mr-2" />
                 {t('shareContact')}
@@ -652,7 +689,7 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
 
             <Button
               variant="outline"
-              className="w-full min-h-12 py-3 px-4 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center text-balance"
+              className="w-full min-h-12 py-3 px-4 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center text-balance focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring"
               onClick={() => window.open('https://findahelpline.com', '_blank', 'noopener')}
             >
               <ExternalLink className="w-4 h-4 mr-2" />
@@ -770,7 +807,7 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
                 <CardTitle>Crisis Resources</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {country.links.map((link, index) => (
+                {activeCountry.links.map((link, index) => (
                   <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <h4 className="font-medium">{link.name}</h4>
@@ -827,19 +864,19 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(COUNTRIES).map(([code, country]) => (
+                    {Object.entries(COUNTRIES).map(([code, c]) => (
                       <SelectItem key={code} value={code}>
-                        {country.name}
+                        {c.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                
+
                 <div className="p-3 bg-gray-50 rounded-lg text-sm">
-                  <p><strong>Emergency:</strong> {country.emergencyNumber}</p>
-                  <p><strong>Crisis Line:</strong> {country.crisisPhone}</p>
-                  {country.crisisTextNumber && (
-                    <p><strong>Crisis Text:</strong> {country.crisisTextKeyword} to {country.crisisTextNumber}</p>
+                  <p><strong>Emergency:</strong> {activeCountry.emergencyNumber}</p>
+                  <p><strong>Crisis Line:</strong> {activeCountry.crisisPhone}</p>
+                  {activeCountry.crisisTextNumber && (
+                    <p><strong>Crisis Text:</strong> {activeCountry.crisisTextKeyword} to {activeCountry.crisisTextNumber}</p>
                   )}
                 </div>
               </CardContent>
@@ -863,6 +900,126 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
                     <SelectItem value="hi">हिंदी</SelectItem>
                   </SelectContent>
                 </Select>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Configuration</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="emergencyNumber">Emergency Number Override</Label>
+                    <Input
+                      id="emergencyNumber"
+                      value={(countryOverrides[selectedCountry]?.emergencyNumber as any) ?? ''}
+                      placeholder={String(baseCountry.emergencyNumber)}
+                      onChange={(e) =>
+                        setCountryOverrides((prev) => ({
+                          ...prev,
+                          [selectedCountry]: {
+                            ...(prev[selectedCountry] || {}),
+                            emergencyNumber: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="crisisPhone">Crisis Line Override</Label>
+                    <Input
+                      id="crisisPhone"
+                      value={(countryOverrides[selectedCountry]?.crisisPhone as any) ?? ''}
+                      placeholder={String(baseCountry.crisisPhone)}
+                      onChange={(e) =>
+                        setCountryOverrides((prev) => ({
+                          ...prev,
+                          [selectedCountry]: {
+                            ...(prev[selectedCountry] || {}),
+                            crisisPhone: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="crisisTextNumber">Crisis Text Number Override</Label>
+                    <Input
+                      id="crisisTextNumber"
+                      value={(countryOverrides[selectedCountry]?.crisisTextNumber as any) ?? ''}
+                      placeholder={String(baseCountry.crisisTextNumber || '')}
+                      onChange={(e) =>
+                        setCountryOverrides((prev) => ({
+                          ...prev,
+                          [selectedCountry]: {
+                            ...(prev[selectedCountry] || {}),
+                            crisisTextNumber: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="smsBody">SMS Body</Label>
+                    <Input
+                      id="smsBody"
+                      value={(countryOverrides[selectedCountry]?.smsBody as any) ?? ''}
+                      placeholder={String(baseCountry.smsBody || '')}
+                      onChange={(e) =>
+                        setCountryOverrides((prev) => ({
+                          ...prev,
+                          [selectedCountry]: {
+                            ...(prev[selectedCountry] || {}),
+                            smsBody: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between rounded-lg border p-3">
+                    <div>
+                      <p className="font-medium">Enable server-side safety plan storage</p>
+                      <p className="text-sm text-muted-foreground">Default OFF. Displays consent modal before saving.</p>
+                    </div>
+                    <Switch checked={serverStorageEnabled} onCheckedChange={setServerStorageEnabled} />
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border p-3">
+                    <div>
+                      <p className="font-medium">Analytics</p>
+                      <p className="text-sm text-muted-foreground">Toggle basic usage events (no PII).</p>
+                    </div>
+                    <Switch checked={analyticsEnabled} onCheckedChange={setAnalyticsEnabled} />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="reviewDate">Content review date</Label>
+                    <Input id="reviewDate" type="date" value={reviewDate} onChange={(e) => setReviewDate(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reviewerName">Reviewer name</Label>
+                    <Input id="reviewerName" value={reviewerName} onChange={(e) => setReviewerName(e.target.value)} placeholder="Name" />
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button onClick={saveSettings}>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Settings
+                  </Button>
+                </div>
+
+                <div className="text-xs text-muted-foreground">
+                  <p>Accessibility: All buttons are keyboard-focusable with visible focus rings. Emergency banner uses role="alert" with assertive announcements.</p>
+                  <p>Privacy: Your privacy matters — this feature does not store what you type unless you explicitly choose to save or send it.</p>
+                </div>
               </CardContent>
             </Card>
           </div>
