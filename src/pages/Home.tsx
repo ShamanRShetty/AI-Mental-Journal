@@ -111,7 +111,12 @@ export default function Home() {
                 size="sm"
                 variant="outline"
                 className="shrink-0"
-                onClick={() => navigate("/auth")}
+                onClick={() => {
+                  try {
+                    sessionStorage.setItem("fromSignInToSave", "true");
+                  } catch {}
+                  navigate("/auth");
+                }}
               >
                 Sign in to save
               </Button>
