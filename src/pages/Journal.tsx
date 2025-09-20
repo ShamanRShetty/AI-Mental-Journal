@@ -229,7 +229,7 @@ export default function Journal() {
                 variant="outline"
                 size="sm"
                 onClick={() => setCrisisSupportOpen(true)}
-                className="text-red-600 border-red-200 hover:bg-red-50"
+                className="text-red-600 border-red-200 hover:bg-red-50 whitespace-normal break-words text-center flex-wrap"
                 aria-label="Open crisis support resources"
               >
                 <LifeBuoy className="w-4 h-4 mr-2" />
@@ -260,7 +260,7 @@ export default function Journal() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="shrink-0"
+                  className="whitespace-normal break-words text-center flex-wrap"
                   onClick={() => {
                     try {
                       sessionStorage.setItem("fromSignInToSave", "true");
@@ -300,7 +300,7 @@ export default function Journal() {
                       <Button
                         size="sm"
                         onClick={() => setCrisisSupportOpen(true)}
-                        className="bg-red-600 hover:bg-red-700"
+                        className="bg-red-600 hover:bg-red-700 whitespace-normal break-words text-center flex-wrap"
                       >
                         <AlertTriangle className="w-4 h-4 mr-2" />
                         Open Crisis Support
@@ -309,6 +309,7 @@ export default function Journal() {
                         variant="outline"
                         size="sm"
                         onClick={() => window.open('tel:988')}
+                        className="whitespace-normal break-words text-center flex-wrap"
                       >
                         Call 988 (US)
                       </Button>
@@ -316,6 +317,7 @@ export default function Journal() {
                         variant="outline" 
                         size="sm" 
                         onClick={() => setShowCrisisAlert(false)}
+                        className="whitespace-normal break-words text-center flex-wrap"
                       >
                         I understand
                       </Button>

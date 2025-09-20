@@ -544,7 +544,7 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
               variant={currentSection === section.id ? 'default' : 'outline'}
               size="sm"
               onClick={() => setCurrentSection(section.id)}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 whitespace-normal break-words text-center flex-wrap"
               aria-pressed={currentSection === section.id}
             >
               <section.icon className="w-4 h-4" />
@@ -559,7 +559,7 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
             <div className="grid md:grid-cols-2 gap-4">
               <Button
                 size="lg"
-                className="h-16 text-lg bg-red-600 hover:bg-red-700"
+                className="h-16 text-lg bg-red-600 hover:bg-red-700 whitespace-normal break-words text-center flex-wrap"
                 onClick={() => window.open(`tel:${country.emergencyNumber}`)}
                 aria-label={`${t('callEmergency')} ${country.emergencyNumber}`}
               >
@@ -569,7 +569,7 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
               
               <Button
                 size="lg"
-                className="h-16 text-lg bg-blue-600 hover:bg-blue-700"
+                className="h-16 text-lg bg-blue-600 hover:bg-blue-700 whitespace-normal break-words text-center flex-wrap"
                 onClick={() => window.open(`tel:${country.crisisPhone}`)}
                 aria-label={`${t('callCrisis')} ${country.crisisPhone}`}
               >
@@ -584,6 +584,7 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
                   variant="outline"
                   onClick={() => window.open(`sms:${country.crisisTextNumber}?&body=${encodeURIComponent(country.smsBody)}`)}
                   aria-label={`${t('textCrisis')} ${country.crisisTextNumber}`}
+                  className="whitespace-normal break-words text-center flex-wrap"
                 >
                   <MessageSquare className="w-4 h-4 mr-2" />
                   {t('textCrisis')}
@@ -593,6 +594,7 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
               <Button
                 variant="outline"
                 onClick={() => copyToClipboard(country.crisisPhone)}
+                className="whitespace-normal break-words text-center flex-wrap"
               >
                 <Copy className="w-4 h-4 mr-2" />
                 {t('copyNumber')}
@@ -601,6 +603,7 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
               <Button
                 variant="outline"
                 onClick={shareWithContact}
+                className="whitespace-normal break-words text-center flex-wrap"
               >
                 <Share2 className="w-4 h-4 mr-2" />
                 {t('shareContact')}
@@ -609,7 +612,7 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
 
             <Button
               variant="outline"
-              className="w-full"
+              className="w-full whitespace-normal break-words text-center flex-wrap"
               onClick={() => window.open('https://findahelpline.com', '_blank', 'noopener')}
             >
               <ExternalLink className="w-4 h-4 mr-2" />

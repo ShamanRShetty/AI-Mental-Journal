@@ -108,7 +108,7 @@ export default function Home() {
                         variant="outline"
                         size="sm"
                         onClick={() => setCrisisSupportOpen(true)}
-                        className="text-red-600 border-red-200 hover:bg-red-50"
+                        className="text-red-600 border-red-200 hover:bg-red-50 whitespace-normal break-words text-center flex-wrap"
                         aria-label="Open crisis support resources"
                       >
                         <AlertTriangle className="w-4 h-4 mr-2" />
@@ -138,7 +138,7 @@ export default function Home() {
                         variant="outline"
                         size="sm"
                         onClick={() => setCrisisSupportOpen(true)}
-                        className="text-red-600 border-red-200 hover:bg-red-50"
+                        className="text-red-600 border-red-200 hover:bg-red-50 whitespace-normal break-words text-center flex-wrap"
                         aria-label="Open crisis support resources"
                       >
                         <AlertTriangle className="w-4 h-4 mr-2" />
@@ -172,7 +172,7 @@ export default function Home() {
               <Button
                 size="sm"
                 variant="outline"
-                className="shrink-0"
+                className="whitespace-normal break-words text-center flex-wrap"
                 onClick={() => {
                   try {
                     sessionStorage.setItem("fromSignInToSave", "true");
