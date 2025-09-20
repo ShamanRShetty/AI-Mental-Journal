@@ -51,6 +51,13 @@ export default function Journal() {
     };
   }, []);
 
+  // Add: mark that the user has visited the Journal page for this session
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("visitedJournal", "true");
+    } catch {}
+  }, []);
+
   useEffect(() => {
     const onVisibility = () => {
       if (document.hidden && mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {

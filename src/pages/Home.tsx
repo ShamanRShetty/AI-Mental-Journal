@@ -5,10 +5,22 @@ import { motion } from "framer-motion";
 import { BookOpen, BarChart3, Heart, ArrowRight, Sparkles } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
 
 export default function Home() {
   const { isAuthenticated, isLoading, signOut, user } = useAuth();
   const navigate = useNavigate();
+
+  const [showGuestBanner, setShowGuestBanner] = useState(false);
+
+  useEffect(() => {
+    try {
+      const visited = sessionStorage.getItem("visitedJournal") === "true";
+      setShowGuestBanner(Boolean(user && user.isAnonymous && visited));
+    } catch {
+      setShowGuestBanner(false);
+    }
+  }, [user]);
 
   const features = [
     {
@@ -83,7 +95,7 @@ export default function Home() {
       </nav>
 
       {/* Guest Mode Banner on Home */}
-      {user && user.isAnonymous && (
+      {showGuestBanner && (
         <div className="max-w-6xl mx-auto px-6 mt-6">
           <Card className="border-blue-200 bg-blue-50">
             <CardContent className="p-4 flex items-center justify-between gap-4">
