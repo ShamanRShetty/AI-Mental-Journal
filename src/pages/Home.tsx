@@ -4,9 +4,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
 import { BookOpen, BarChart3, Heart, ArrowRight, Sparkles } from "lucide-react";
 import { Link, useNavigate } from "react-router";
+import { toast } from "sonner";
 
 export default function Home() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
 
   const features = [
@@ -50,6 +51,21 @@ export default function Home() {
                       </Button>
                       <Button variant="ghost" asChild>
                         <Link to="/dashboard">Dashboard</Link>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            await signOut();
+                            toast.success("Signed out");
+                            navigate("/");
+                          } catch (e) {
+                            console.error(e);
+                            toast.error("Failed to sign out, please try again.");
+                          }
+                        }}
+                      >
+                        Sign out
                       </Button>
                     </div>
                   ) : (
