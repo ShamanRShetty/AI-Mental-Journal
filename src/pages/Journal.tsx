@@ -21,6 +21,7 @@ export default function Journal() {
   const [supportsSpeech, setSupportsSpeech] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
   const recognitionRef = useRef<any>(null);
+  const networkRetryRef = useRef<number>(0);
 
   const analyzeEntry = useAction(api.ai.analyzeJournalEntry);
   const entries = useQuery(api.journals.getUserEntries);
@@ -93,6 +94,9 @@ export default function Journal() {
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
+    // Reset retry counter each start
+    networkRetryRef.current = 0;
+
     recognition.onstart = () => {
       setIsRecording(true);
       setInterimTranscript("");
@@ -113,14 +117,35 @@ export default function Journal() {
     recognition.onerror = (e: any) => {
       console.error("SpeechRecognition error:", e);
       const code = e?.error || e?.name;
+
+      // Add: transient network retry logic
+      if (code === "network") {
+        if (networkRetryRef.current < 2) {
+          networkRetryRef.current += 1;
+          toast("Voice service had a network hiccup, retrying...");
+          try {
+            recognition.stop();
+          } catch {}
+          setTimeout(() => {
+            try {
+              recognition.start();
+            } catch (restartErr) {
+              console.error("Failed to restart recognition after network error:", restartErr);
+              toast.error("Network error with voice service. Check your connection and retry.");
+            }
+          }, 400);
+          return;
+        }
+        toast.error("Network error with voice service. Check your connection (VPN/Adblock/Firewall) and retry.");
+        return;
+      }
+
       if (code === "not-allowed") {
         toast.error("Microphone access was blocked. Please allow it in site settings.");
       } else if (code === "no-speech") {
         toast.error("No speech detected. Try speaking louder and closer to the mic.");
       } else if (code === "aborted") {
         toast.error("Voice input aborted. Try again.");
-      } else if (code === "network") {
-        toast.error("Network error with voice service. Check your connection and retry.");
       } else {
         toast.error("Voice input error. Please try again.");
       }
