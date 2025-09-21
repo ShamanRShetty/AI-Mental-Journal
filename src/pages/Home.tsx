@@ -131,7 +131,7 @@ export default function Home() {
                 variant="outline"
                 size="sm"
                 onClick={() => setCrisisSupportOpen(true)}
-                className="text-red-600 border-red-200 hover:bg-red-50 whitespace-normal break-words text-center flex-wrap"
+                className="text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-700 dark:hover:bg-red-900/30 whitespace-normal break-words text-center flex-wrap focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-red-600 dark:focus-visible:ring-red-500"
                 aria-label="Open crisis support resources"
               >
                 <AlertTriangle className="w-4 h-4 mr-2" />
