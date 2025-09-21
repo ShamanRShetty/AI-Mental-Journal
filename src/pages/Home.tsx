@@ -19,9 +19,10 @@ export default function Home() {
       return localStorage.getItem("theme") === "dark";
     } catch { return false; }
   });
-  const [lang, setLang] = useState<string>(() => {
+  const [lang, setLang] = useState<'en' | 'hi' | 'es'>(() => {
     try {
-      return localStorage.getItem("lang") || "en";
+      const saved = localStorage.getItem("lang");
+      return saved === "en" || saved === "hi" || saved === "es" ? saved : "en";
     } catch { return "en"; }
   });
 
@@ -155,7 +156,7 @@ export default function Home() {
                   <Languages className="w-4 h-4 text-muted-foreground" />
                   <select
                     value={lang}
-                    onChange={(e) => setLang(e.target.value)}
+                    onChange={(e) => setLang(e.target.value as 'en' | 'hi' | 'es')}
                     className="text-sm border rounded-md px-2 py-1 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring bg-background"
                     aria-label="Language"
                   >
@@ -374,6 +375,7 @@ export default function Home() {
         open={crisisSupportOpen}
         onOpenChange={setCrisisSupportOpen}
         emergencyMode={false}
+        langCode={lang}
       />
 
       <Dialog open={overviewOpen} onOpenChange={setOverviewOpen}>

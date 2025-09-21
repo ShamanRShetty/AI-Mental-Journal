@@ -246,6 +246,7 @@ interface CrisisSupportProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   emergencyMode?: boolean;
+  langCode?: 'en' | 'es' | 'hi';
 }
 
 interface SafetyPlan {
@@ -257,7 +258,7 @@ interface SafetyPlan {
   emergencyContacts: string[];
 }
 
-export default function CrisisSupport({ open, onOpenChange, emergencyMode = false }: CrisisSupportProps) {
+export default function CrisisSupport({ open, onOpenChange, emergencyMode = false, langCode }: CrisisSupportProps) {
   const [currentSection, setCurrentSection] = useState(emergencyMode ? 'immediate' : 'immediate');
   const [selectedCountry, setSelectedCountry] = useState<keyof typeof COUNTRIES>('IN');
   const [selectedLanguage, setSelectedLanguage] = useState<keyof typeof STRINGS>('en');
@@ -317,17 +318,31 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
   const overrides = countryOverrides[selectedCountry] || {};
   const activeCountry = { ...baseCountry, ...overrides };
 
-  // Auto-detect country and language on mount
+  // Sync language from parent prop if provided
+  useEffect(() => {
+    if (langCode && (langCode in STRINGS)) {
+      setSelectedLanguage(langCode);
+    }
+  }, [langCode]);
+
+  // Auto-detect country and language on mount (prefer saved 'lang' first)
   useEffect(() => {
     try {
-      const locale = navigator.language || 'en-US';
-      const langCode = locale.split('-')[0] as keyof typeof STRINGS;
-      const countryCode = locale.split('-')[1];
-      
-      if (STRINGS[langCode]) {
-        setSelectedLanguage(langCode);
+      // Prefer stored language if present
+      const storedLang = localStorage.getItem('lang') as keyof typeof STRINGS | null;
+      if (storedLang && STRINGS[storedLang]) {
+        setSelectedLanguage(storedLang);
+      } else {
+        const locale = navigator.language || 'en-US';
+        const langCode = locale.split('-')[0] as keyof typeof STRINGS;
+        if (STRINGS[langCode]) {
+          setSelectedLanguage(langCode);
+        }
       }
-      
+
+      const locale = navigator.language || 'en-US';
+      const countryCode = locale.split('-')[1];
+
       // Only set India explicitly; otherwise fall back to International
       if (countryCode === 'IN') {
         setSelectedCountry('IN');
