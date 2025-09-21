@@ -1,4 +1,4 @@
-# 🌱 Reflect & Track
+# 🌱 Reflect & Track — Private Journaling, AI Reflections, Mood Tracking, and Crisis Support
 
 Millions struggle with mental health support access in India. **Reflect & Track** provides a private, AI-powered journaling and crisis support platform designed with accessibility and cultural context in mind.  
 🌐 **Live Demo:** [ai-mental-journal.vly.site](https://ai-mental-journal.vly.site/)  
