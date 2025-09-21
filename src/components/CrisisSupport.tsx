@@ -592,9 +592,11 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" showCloseButton={!emergencyMode}>
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-            <Heart className="w-6 h-6 text-red-500" />
-            {t('title')}
+          <DialogTitle className="text-2xl font-bold flex items-center justify-between gap-2">
+            <span className="flex items-center gap-2">
+              <Heart className="w-6 h-6 text-red-500" />
+              {t('title')}
+            </span>
           </DialogTitle>
         </DialogHeader>
 
@@ -608,8 +610,14 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
           </Alert>
         )}
 
+        {/* Headline + subtext */}
         <div className="text-center mb-6">
-          <p className="text-lg text-gray-700">{t('notAlone')}</p>
+          <h2 className="text-xl md:text-2xl font-semibold text-gray-900">
+            You're Not Alone. Help Is Available 24/7.
+          </h2>
+          <p className="mt-2 text-base text-gray-600">
+            {t('notAlone')}
+          </p>
         </div>
 
         {/* Section Navigation */}
@@ -1030,6 +1038,11 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
             </Card>
           </div>
         )}
+
+        {/* Privacy notice banner (persistent in modal) */}
+        <div className="mt-6 rounded-lg border bg-muted p-3 text-xs text-muted-foreground">
+          {t('privacyNotice')}
+        </div>
       </DialogContent>
     </Dialog>
   );
