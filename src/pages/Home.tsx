@@ -94,6 +94,19 @@ export default function Home() {
             </div>
             
             <div className="flex items-center space-x-4">
+              {/* Always show Need Help Now, even while auth is loading */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCrisisSupportOpen(true)}
+                className="text-red-600 border-red-200 hover:bg-red-50 whitespace-normal break-words text-center flex-wrap"
+                aria-label="Open crisis support resources"
+              >
+                <AlertTriangle className="w-4 h-4 mr-2" />
+                Need Help Now
+              </Button>
+
+              {/* Show the rest after auth resolves */}
               {!isLoading && (
                 <>
                   {isAuthenticated ? (
@@ -103,16 +116,6 @@ export default function Home() {
                       </Button>
                       <Button variant="ghost" asChild>
                         <Link to="/dashboard">Dashboard</Link>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCrisisSupportOpen(true)}
-                        className="text-red-600 border-red-200 hover:bg-red-50 whitespace-normal break-words text-center flex-wrap"
-                        aria-label="Open crisis support resources"
-                      >
-                        <AlertTriangle className="w-4 h-4 mr-2" />
-                        Need Help Now
                       </Button>
                       {user && !user.isAnonymous && (
                         <Button
@@ -134,16 +137,6 @@ export default function Home() {
                     </div>
                   ) : (
                     <div className="flex items-center space-x-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCrisisSupportOpen(true)}
-                        className="text-red-600 border-red-200 hover:bg-red-50 whitespace-normal break-words text-center flex-wrap"
-                        aria-label="Open crisis support resources"
-                      >
-                        <AlertTriangle className="w-4 h-4 mr-2" />
-                        Need Help Now
-                      </Button>
                       <Button asChild>
                         <Link to="/auth">Get Started</Link>
                       </Button>
