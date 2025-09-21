@@ -35,7 +35,8 @@ Millions struggle with mental health support access in India. **Reflect & Track*
 - **Backend/DB/Auth:** Convex  
 - **AI Services:** Google Gemini (REST API) for reflections & transcription  
 - **Data Visualization:** Recharts  
-- **Tooling:** Sonner (toasts), Axe CLI (a11y checks), Vitest (unit tests)  
+- **Tooling:** Sonner (toasts), Axe CLI (a11y checks), Vitest (unit tests)
+- **Refer DOCS.md for more details about the tech stacks used**  
 
 ---
 
