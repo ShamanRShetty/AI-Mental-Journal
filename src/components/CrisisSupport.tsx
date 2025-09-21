@@ -33,6 +33,11 @@ import GroundingExercise from '@/components/crisis/GroundingExercise';
 import { Switch } from '@/components/ui/switch';
 import TrustedContactCard from '@/components/TrustedContactCard';
 import { useFeatureFlags } from '@/hooks/use-feature-flags';
+import ImmediateHelpSection from "@/components/crisis/support/ImmediateHelpSection";
+import CopingToolsSection from "@/components/crisis/support/CopingToolsSection";
+import SafetyPlanSection from "@/components/crisis/support/SafetyPlanSection";
+import ResourcesSection from "@/components/crisis/support/ResourcesSection";
+import SettingsSection from "@/components/crisis/support/SettingsSection";
 
 // Internationalization strings
 const STRINGS = {
@@ -665,409 +670,63 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
 
         {/* Immediate Help Section */}
         {currentSection === 'immediate' && (
-          <div className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-4">
-              <Button
-                size="lg"
-                className="min-h-16 py-4 px-6 text-lg bg-red-600 hover:bg-red-700 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center text-balance focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-red-600"
-                onClick={() => callNumber(String(activeCountry.emergencyNumber))}
-                aria-label={`${t('callEmergency')} ${activeCountry.emergencyNumber}`}
-                type="button"
-              >
-                <Phone className="w-6 h-6 mr-2" />
-                {t('callEmergency')}
-              </Button>
-
-              <Button
-                size="lg"
-                className="min-h-16 py-4 px-6 text-lg bg-blue-600 hover:bg-blue-700 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center text-balance focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-600"
-                onClick={() => callNumber(String(activeCountry.crisisPhone))}
-                aria-label={`${t('callCrisis')} ${activeCountry.crisisPhone}`}
-                type="button"
-              >
-                <Phone className="w-6 h-6 mr-2" />
-                {t('callCrisis')}
-              </Button>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-4">
-              {activeCountry.crisisTextNumber && (
-                <Button
-                  variant="outline"
-                  onClick={() => window.open(`sms:${activeCountry.crisisTextNumber}?&body=${encodeURIComponent(activeCountry.smsBody || '')}`)}
-                  aria-label={`${t('textCrisis')} ${activeCountry.crisisTextNumber}`}
-                  className="w-full min-h-12 py-3 px-4 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center text-balance focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring"
-                >
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  {t('textCrisis')}
-                </Button>
-              )}
-
-              <Button
-                variant="outline"
-                onClick={() => copyToClipboard(String(activeCountry.crisisPhone))}
-                className="w-full min-h-12 py-3 px-4 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center text-balance focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring"
-              >
-                <Copy className="w-4 h-4 mr-2" />
-                {t('copyNumber')}
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={shareWithContact}
-                className="w-full min-h-12 py-3 px-4 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center text-balance focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring"
-                title={t('shareContact')}
-                aria-label={t('shareContact')}
-              >
-                <Share2 className="w-4 h-4 mr-2" />
-                {t('shareContact')}
-              </Button>
-            </div>
-
-            <Button
-              variant="outline"
-              className="w-full min-h-12 py-3 px-4 whitespace-normal break-words text-center flex-wrap leading-snug flex items-center justify-center text-balance focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring"
-              onClick={() => window.open('https://findahelpline.com', '_blank', 'noopener')}
-            >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              {t('findCenter')}
-            </Button>
-
-            {/* Trusted Contacts (feature-flagged) */}
-            {flags.trustedContacts && (
-              <TrustedContactCard />
-            )}
-          </div>
+          <ImmediateHelpSection
+            t={t}
+            activeCountry={activeCountry}
+            callNumber={callNumber}
+            copyToClipboard={copyToClipboard}
+            shareWithContact={shareWithContact}
+          />
         )}
 
         {/* Coping Tools Section */}
         {currentSection === 'coping' && (
-          <div className="space-y-8">
-            {/* Breathing Exercise (feature-flagged) */}
-            {flags.breathingVisualizer && <BreathingExercise t={t} />}
-
-            {/* Grounding Exercise (feature-flagged) */}
-            {flags.groundingChecklist && <GroundingExercise t={t} />}
-
-            {/* Quick Coping Tips */}
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('quickTips')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {t('quickCopingTips').map((tip, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 mt-0.5 text-green-600 flex-shrink-0" />
-                      <span className="text-sm">{tip}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
+          <CopingToolsSection t={t} />
         )}
 
         {/* Safety Plan Section */}
         {currentSection === 'safety' && (
-          <div className="space-y-6">
-            <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-              {t('privacyNotice')}
-            </div>
-
-            <div className="flex gap-2 flex-wrap">
-              <Button onClick={saveSafetyPlan} size="sm">
-                <Save className="w-4 h-4 mr-2" />
-                {t('saveLocal')}
-              </Button>
-              <Button onClick={exportSafetyPlan} variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                {t('exportPlan')}
-              </Button>
-              <Button onClick={printSafetyPlan} variant="outline" size="sm">
-                <Printer className="w-4 h-4 mr-2" />
-                {t('printPlan')}
-              </Button>
-              <Button onClick={clearSafetyPlan} variant="destructive" size="sm">
-                <Trash2 className="w-4 h-4 mr-2" />
-                {t('clearPlan')}
-              </Button>
-            </div>
-
-            {/* Safety Plan Fields */}
-            {( [
-              { key: 'warningSigns', title: t('warningSignsTitle'), desc: t('warningSignsDesc') },
-              { key: 'copingStrategies', title: t('copingStrategiesTitle'), desc: t('copingStrategiesDesc') },
-              { key: 'supportContacts', title: t('supportContactsTitle'), desc: t('supportContactsDesc') },
-              { key: 'professionals', title: t('professionalsTitle'), desc: t('professionalsDesc') },
-              { key: 'environmentSafety', title: t('environmentTitle'), desc: t('environmentDesc') },
-              { key: 'emergencyContacts', title: t('emergencyContactsTitle'), desc: t('emergencyContactsDesc') }
-            ] as Array<{ key: keyof SafetyPlan; title: string; desc: string }>).map((field) => (
-              <Card key={field.key}>
-                <CardHeader>
-                  <CardTitle className="text-lg">{field.title}</CardTitle>
-                  <p className="text-sm text-gray-600">{field.desc}</p>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {safetyPlan[field.key].map((item, index) => (
-                    <div key={index} className="flex gap-2">
-                      <Input
-                        value={item}
-                        onChange={(e) => updateSafetyPlanField(field.key as keyof SafetyPlan, index, e.target.value)}
-                        placeholder={`${field.title} ${index + 1}`}
-                        className="flex-1"
-                      />
-                      <Button
-                        onClick={() => removeSafetyPlanItem(field.key as keyof SafetyPlan, index)}
-                        variant="outline"
-                        size="sm"
-                        aria-label={`Remove ${field.title} ${index + 1}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    onClick={() => addSafetyPlanItem(field.key as keyof SafetyPlan)}
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                  >
-                    Add {field.title}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <SafetyPlanSection
+            t={t}
+            safetyPlan={safetyPlan}
+            saveSafetyPlan={saveSafetyPlan}
+            exportSafetyPlan={exportSafetyPlan}
+            printSafetyPlan={printSafetyPlan}
+            clearSafetyPlan={clearSafetyPlan}
+            updateSafetyPlanField={updateSafetyPlanField}
+            addSafetyPlanItem={addSafetyPlanItem}
+            removeSafetyPlanItem={removeSafetyPlanItem}
+          />
         )}
 
         {/* Resources Section */}
         {currentSection === 'resources' && (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Crisis Resources</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {activeCountry.links.map((link, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <h4 className="font-medium">{link.name}</h4>
-                      <p className="text-sm text-gray-600">{link.url}</p>
-                    </div>
-                    <Button
-                      onClick={() => window.open(link.url, '_blank', 'noopener')}
-                      variant="outline"
-                      size="sm"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>International Resources</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <h4 className="font-medium">Find a Helpline (IASP)</h4>
-                    <p className="text-sm text-gray-600">Global directory of crisis helplines</p>
-                  </div>
-                  <Button
-                    onClick={() => window.open('https://findahelpline.com', '_blank', 'noopener')}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <ResourcesSection t={t} activeCountry={activeCountry} />
         )}
 
         {/* Settings Section */}
         {currentSection === 'settings' && (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="w-5 h-5" />
-                  {t('country')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Select value={selectedCountry} onValueChange={(value) => setSelectedCountry(value as keyof typeof COUNTRIES)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object
-                      .entries(COUNTRIES)
-                      .filter(([code]) => code !== 'US') // Hide United States from selection
-                      .map(([code, c]) => (
-                        <SelectItem key={code} value={code}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-
-                <div className="p-3 bg-gray-50 rounded-lg text-sm">
-                  <p><strong>Emergency:</strong> {activeCountry.emergencyNumber}</p>
-                  <p><strong>Crisis Line:</strong> {activeCountry.crisisPhone}</p>
-                  {activeCountry.crisisTextNumber && (
-                    <p><strong>Crisis Text:</strong> {activeCountry.crisisTextKeyword} to {activeCountry.crisisTextNumber}</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Languages className="w-5 h-5" />
-                  {t('language')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Select value={selectedLanguage} onValueChange={(value) => setSelectedLanguage(value as keyof typeof STRINGS)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="es">Español</SelectItem>
-                    <SelectItem value="hi">हिंदी</SelectItem>
-                  </SelectContent>
-                </Select>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Configuration</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="emergencyNumber">Emergency Number Override</Label>
-                    <Input
-                      id="emergencyNumber"
-                      value={(countryOverrides[selectedCountry]?.emergencyNumber as any) ?? ''}
-                      placeholder={String(baseCountry.emergencyNumber)}
-                      onChange={(e) =>
-                        setCountryOverrides((prev) => ({
-                          ...prev,
-                          [selectedCountry]: {
-                            ...(prev[selectedCountry] || {}),
-                            emergencyNumber: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="crisisPhone">Crisis Line Override</Label>
-                    <Input
-                      id="crisisPhone"
-                      value={(countryOverrides[selectedCountry]?.crisisPhone as any) ?? ''}
-                      placeholder={String(baseCountry.crisisPhone)}
-                      onChange={(e) =>
-                        setCountryOverrides((prev) => ({
-                          ...prev,
-                          [selectedCountry]: {
-                            ...(prev[selectedCountry] || {}),
-                            crisisPhone: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="crisisTextNumber">Crisis Text Number Override</Label>
-                    <Input
-                      id="crisisTextNumber"
-                      value={(countryOverrides[selectedCountry]?.crisisTextNumber as any) ?? ''}
-                      placeholder={String(baseCountry.crisisTextNumber || '')}
-                      onChange={(e) =>
-                        setCountryOverrides((prev) => ({
-                          ...prev,
-                          [selectedCountry]: {
-                            ...(prev[selectedCountry] || {}),
-                            crisisTextNumber: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="smsBody">SMS Body</Label>
-                    <Input
-                      id="smsBody"
-                      value={(countryOverrides[selectedCountry]?.smsBody as any) ?? ''}
-                      placeholder={String(baseCountry.smsBody || '')}
-                      onChange={(e) =>
-                        setCountryOverrides((prev) => ({
-                          ...prev,
-                          [selectedCountry]: {
-                            ...(prev[selectedCountry] || {}),
-                            smsBody: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="flex items-center justify-between rounded-lg border p-3">
-                    <div>
-                      <p className="font-medium">Enable server-side safety plan storage</p>
-                      <p className="text-sm text-muted-foreground">Default OFF. Displays consent modal before saving.</p>
-                    </div>
-                    <Switch checked={serverStorageEnabled} onCheckedChange={setServerStorageEnabled} />
-                  </div>
-                  <div className="flex items-center justify-between rounded-lg border p-3">
-                    <div>
-                      <p className="font-medium">Analytics</p>
-                      <p className="text-sm text-muted-foreground">Toggle basic usage events (no PII).</p>
-                    </div>
-                    <Switch checked={analyticsEnabled} onCheckedChange={setAnalyticsEnabled} />
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="reviewDate">Content review date</Label>
-                    <Input id="reviewDate" type="date" value={reviewDate} onChange={(e) => setReviewDate(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="reviewerName">Reviewer name</Label>
-                    <Input id="reviewerName" value={reviewerName} onChange={(e) => setReviewerName(e.target.value)} placeholder="Name" />
-                  </div>
-                </div>
-
-                <div className="flex justify-end">
-                  <Button onClick={saveSettings}>
-                    <Save className="w-4 h-4 mr-2" />
-                    Save Settings
-                  </Button>
-                </div>
-
-                <div className="text-xs text-muted-foreground">
-                  <p>Accessibility: All buttons are keyboard-focusable with visible focus rings. Emergency banner uses role="alert" with assertive announcements.</p>
-                  <p>Privacy: Your privacy matters — this feature does not store what you type unless you explicitly choose to save or send it.</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <SettingsSection
+            t={t}
+            COUNTRIES={COUNTRIES as any}
+            baseCountry={baseCountry as any}
+            activeCountry={activeCountry as any}
+            selectedCountry={selectedCountry}
+            setSelectedCountry={(value) => setSelectedCountry(value as keyof typeof COUNTRIES)}
+            selectedLanguage={selectedLanguage}
+            setSelectedLanguage={(value) => setSelectedLanguage(value)}
+            countryOverrides={countryOverrides as any}
+            setCountryOverrides={setCountryOverrides as any}
+            serverStorageEnabled={serverStorageEnabled}
+            setServerStorageEnabled={setServerStorageEnabled}
+            analyticsEnabled={analyticsEnabled}
+            setAnalyticsEnabled={setAnalyticsEnabled}
+            reviewDate={reviewDate}
+            setReviewDate={setReviewDate}
+            reviewerName={reviewerName}
+            setReviewerName={setReviewerName}
+            saveSettings={saveSettings}
+          />
         )}
 
         {/* Privacy notice banner (persistent in modal) */}
