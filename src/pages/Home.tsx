@@ -162,6 +162,7 @@ export default function Home() {
                   >
                     <option value="en">English</option>
                     <option value="hi">हिंदी</option>
+                    <option value="es">Español</option>
                   </select>
                 </div>
               )}
