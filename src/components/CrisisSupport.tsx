@@ -392,7 +392,7 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
             baseCountry={baseCountry as any}
             activeCountry={activeCountry as any}
             selectedCountry={selectedCountry}
-            setSelectedCountry={(value: keyof typeof COUNTRIES) => setSelectedCountry(value)}
+            setSelectedCountry={(value) => setSelectedCountry(value as keyof typeof COUNTRIES)}
             selectedLanguage={selectedLanguage as "en" | "es" | "hi"}
             setSelectedLanguage={(value: "en" | "es" | "hi") => setSelectedLanguage(value)}
             countryOverrides={countryOverrides as any}

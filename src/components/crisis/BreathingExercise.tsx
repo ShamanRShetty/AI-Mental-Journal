@@ -49,7 +49,7 @@ export default function BreathingExercise({ t }: { t: TFn }) {
 
   useEffect(() => {
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) window.clearInterval(intervalRef.current);
     };
   }, []);
 
@@ -82,7 +82,7 @@ export default function BreathingExercise({ t }: { t: TFn }) {
     setBreathingCount(4);
     playChime();
 
-    intervalRef.current = setInterval(() => {
+    intervalRef.current = window.setInterval(() => {
       setBreathingCount((prev) => {
         if (prev <= 1) {
           setBreathingPhase((current) => {
@@ -108,7 +108,7 @@ export default function BreathingExercise({ t }: { t: TFn }) {
   const pauseBreathing = () => {
     setBreathingActive(false);
     if (intervalRef.current) {
-      clearInterval(intervalRef.current);
+      window.clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
   };

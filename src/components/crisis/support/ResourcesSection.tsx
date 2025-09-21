@@ -6,7 +6,7 @@ import { ExternalLink } from "lucide-react";
 type TFn = (key: any) => any;
 
 type LinkInfo = { name: string; url: string };
-type CountryInfo = { links: LinkInfo[] };
+type CountryInfo = { links: ReadonlyArray<LinkInfo> };
 
 export default function ResourcesSection({
   t: _t,
