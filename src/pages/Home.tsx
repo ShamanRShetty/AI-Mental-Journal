@@ -3,8 +3,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CrisisSupport from "@/components/CrisisSupport";
 import { useAuth } from "@/hooks/use-auth";
+import { useFeatureFlags } from "@/hooks/use-feature-flags";
 import { motion } from "framer-motion";
-import { BookOpen, BarChart3, Heart, ArrowRight, Sparkles, AlertTriangle } from "lucide-react";
+import { BookOpen, BarChart3, Heart, ArrowRight, Sparkles, AlertTriangle, Moon, Sun, Languages } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
@@ -12,10 +13,40 @@ import { useEffect, useState } from "react";
 export default function Home() {
   const { isAuthenticated, isLoading, signOut, user } = useAuth();
   const navigate = useNavigate();
+  const { flags } = useFeatureFlags();
+  const [dark, setDark] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("theme") === "dark";
+    } catch { return false; }
+  });
+  const [lang, setLang] = useState<string>(() => {
+    try {
+      return localStorage.getItem("lang") || "en";
+    } catch { return "en"; }
+  });
 
-  const [showGuestBanner, setShowGuestBanner] = useState(false);
-  const [overviewOpen, setOverviewOpen] = useState(false);
-  const [crisisSupportOpen, setCrisisSupportOpen] = useState(false);
+  // Add missing local UI state
+  const [showGuestBanner, setShowGuestBanner] = useState<boolean>(false);
+  const [crisisSupportOpen, setCrisisSupportOpen] = useState<boolean>(false);
+  const [overviewOpen, setOverviewOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    try {
+      if (dark) {
+        document.documentElement.classList.add("dark");
+        localStorage.setItem("theme", "dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+        localStorage.setItem("theme", "light");
+      }
+    } catch {}
+  }, [dark]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("lang", lang);
+    } catch {}
+  }, [lang]);
 
   // Ensure page starts at top on initial load/refresh
   useEffect(() => {
@@ -81,9 +112,9 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:bg-gradient-to-br dark:from-blue-950 dark:via-gray-900 dark:to-purple-950">
       {/* Navigation */}
-      <nav className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+      <nav className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50 dark:bg-gray-900/80 dark:border-gray-800">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -105,6 +136,34 @@ export default function Home() {
                 <AlertTriangle className="w-4 h-4 mr-2" />
                 Need Help Now
               </Button>
+
+              {/* Feature toggles in navbar */}
+              {flags.darkModeToggle && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDark((d) => !d)}
+                  aria-label="Toggle dark mode"
+                  title="Toggle dark mode"
+                  className="hidden sm:inline-flex"
+                >
+                  {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </Button>
+              )}
+              {flags.i18nToggle && (
+                <div className="hidden sm:flex items-center gap-2">
+                  <Languages className="w-4 h-4 text-muted-foreground" />
+                  <select
+                    value={lang}
+                    onChange={(e) => setLang(e.target.value)}
+                    className="text-sm border rounded-md px-2 py-1 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring bg-background"
+                    aria-label="Language"
+                  >
+                    <option value="en">English</option>
+                    <option value="hi">हिंदी</option>
+                  </select>
+                </div>
+              )}
 
               {/* Show the rest after auth resolves */}
               {!isLoading && (
@@ -152,13 +211,13 @@ export default function Home() {
       {/* Guest Mode Banner on Home */}
       {showGuestBanner && (
         <div className="max-w-6xl mx-auto px-6 mt-6">
-          <Card className="border-blue-200 bg-blue-50">
+          <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30">
             <CardContent className="p-4 flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-medium text-blue-900">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
                   You're in guest mode — your progress isn't saved.
                 </p>
-                <p className="text-xs text-blue-800">
+                <p className="text-xs text-blue-800 dark:text-blue-300">
                   Sign in with email to securely save your journal and mood history.
                 </p>
               </div>
@@ -193,12 +252,12 @@ export default function Home() {
               <span>Your mental wellness companion</span>
             </div>
             
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-gray-900 mb-6">
+            <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-gray-900 dark:text-white mb-6">
               Journal Your Way to
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Better Mental Health</span>
             </h1>
             
-            <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed">
               A safe, private space for youth to express their thoughts, receive AI-powered empathetic reflections, 
               and track their emotional journey over time.
             </p>
@@ -226,7 +285,7 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-24 px-6 bg-white">
+      <section id="features" className="py-24 px-6 bg-white dark:bg-gray-900">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -235,10 +294,10 @@ export default function Home() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl font-bold tracking-tight text-gray-900 mb-4">
+            <h2 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
               Everything you need for mental wellness
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
               Our platform combines journaling, AI insights, and mood tracking to support your mental health journey.
             </p>
           </motion.div>
@@ -257,8 +316,8 @@ export default function Home() {
                     <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
                       <feature.icon className="w-8 h-8 text-white" />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">{feature.title}</h3>
-                    <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{feature.title}</h3>
+                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{feature.description}</p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -268,7 +327,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 px-6 bg-gradient-to-r from-blue-600 to-purple-600">
+      <section className="py-24 px-6 bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-800 dark:to-purple-800">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -276,10 +335,10 @@ export default function Home() {
             transition={{ duration: 0.6 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-4xl font-bold text-white mb-6">
+            <h2 className="text-4xl font-bold text-white dark:text-white mb-6">
               Ready to start your wellness journey?
             </h2>
-            <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            <p className="text-xl text-blue-100 dark:text-blue-100 mb-8 max-w-2xl mx-auto">
               Join thousands of youth who are already improving their mental health through mindful journaling.
             </p>
             <Button 
@@ -296,7 +355,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-6 bg-gray-50 border-t">
+      <footer className="py-12 px-6 bg-gray-50 dark:bg-gray-900 border-t dark:border-gray-800">
         <div className="max-w-6xl mx-auto text-center">
           <div className="flex items-center justify-center space-x-3 mb-4">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
@@ -304,7 +363,7 @@ export default function Home() {
             </div>
             <span className="text-xl font-bold tracking-tight">Mental Wellness Journal</span>
           </div>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400">
             Supporting youth mental health through technology and empathy.
           </p>
         </div>
@@ -327,7 +386,7 @@ export default function Home() {
           </DialogHeader>
 
           <div className="space-y-4 text-sm text-muted-foreground">
-            <div className="rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 p-4 text-gray-800">
+            <div className="rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 p-4 text-gray-800 dark:bg-gradient-to-br dark:from-blue-950/30 dark:to-purple-950/30 dark:text-gray-200">
               Reflect & Track helps you journal privately, receive supportive AI reflections, and visualize your emotional journey.
             </div>
             <ul className="list-disc pl-5 space-y-2">

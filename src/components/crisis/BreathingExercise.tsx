@@ -17,6 +17,36 @@ export default function BreathingExercise({ t }: { t: TFn }) {
     exhale: "breathingExhale",
   };
 
+  // Add: reduced motion preference & live region / keyboard controls
+  const prefersReducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const liveRegionRef = useRef<HTMLDivElement | null>(null);
+
+  // Add: keyboard handlers for start/stop/reset (Enter/Space)
+  const onKeyActivate = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (!breathingActive) {
+        startBreathing();
+      } else {
+        pauseBreathing();
+      }
+    }
+  };
+
+  // Announce phase/count via ARIA live
+  useEffect(() => {
+    try {
+      if (liveRegionRef.current) {
+        const phaseLabel = t(breathingLabelKeyByPhase[breathingPhase]) as string;
+        liveRegionRef.current.textContent = `${phaseLabel}: ${breathingCount}s`;
+      }
+    } catch {}
+  }, [breathingPhase, breathingCount, t]);
+
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -45,7 +75,7 @@ export default function BreathingExercise({ t }: { t: TFn }) {
     }
   };
 
-  const start = () => {
+  const startBreathing = () => {
     if (breathingActive) return;
     setBreathingActive(true);
     setBreathingPhase("inhale");
@@ -75,7 +105,7 @@ export default function BreathingExercise({ t }: { t: TFn }) {
     }, 1000);
   };
 
-  const pause = () => {
+  const pauseBreathing = () => {
     setBreathingActive(false);
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -83,40 +113,93 @@ export default function BreathingExercise({ t }: { t: TFn }) {
     }
   };
 
-  const reset = () => {
-    pause();
+  const resetBreathing = () => {
+    pauseBreathing();
     setBreathingPhase("inhale");
     setBreathingCount(4);
   };
 
   return (
-    <Card>
+    <Card role="region" aria-label="Breathing visualizer">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Heart className="w-5 h-5" />
-          {t("breathing")}
+        <CardTitle className="flex items-center justify-between">
+          <span>{t('breathing')}</span>
+          {!prefersReducedMotion && (
+            <span className="text-xs text-muted-foreground">
+              Press Enter/Space to {breathingActive ? t('pause') : t('start')}
+            </span>
+          )}
         </CardTitle>
-        <p className="text-sm text-gray-600">{t("breathingDesc")}</p>
       </CardHeader>
       <CardContent>
-        <div className="text-center space-y-4">
-          <div className="text-6xl font-bold text-blue-600" aria-live="polite">
-            {breathingCount}
-          </div>
-          <div className="text-xl font-medium" aria-live="polite">
-            {t(breathingLabelKeyByPhase[breathingPhase] as any)}
-          </div>
-          <div className="flex justify-center gap-4">
-            <Button onClick={breathingActive ? pause : start} variant={breathingActive ? "destructive" : "default"} aria-label={breathingActive ? t("pause") : t("start")}>
-              {breathingActive ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
-              {breathingActive ? t("pause") : t("start")}
-            </Button>
-            <Button onClick={reset} variant="outline" aria-label={t("reset")}>
-              <RotateCcw className="w-4 h-4 mr-2" />
-              {t("reset")}
-            </Button>
-          </div>
+        {/* Live region for screen readers */}
+        <div
+          ref={liveRegionRef}
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        />
+
+        {/* Animated visualizer */}
+        <div
+          tabIndex={0}
+          onKeyDown={onKeyActivate}
+          className="mx-auto mb-4 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring rounded-lg"
+        >
+          <div
+            aria-hidden="true"
+            className={[
+              "h-28 w-28 rounded-full bg-blue-200/70 dark:bg-blue-300/30 transition-transform",
+              prefersReducedMotion
+                ? ""
+                : breathingPhase === "inhale"
+                ? "scale-110"
+                : breathingPhase === "hold"
+                ? "scale-100"
+                : "scale-90",
+            ].join(" ")}
+            style={{
+              transitionDuration: prefersReducedMotion
+                ? "0ms"
+                : breathingPhase === "inhale"
+                ? "1000ms"
+                : breathingPhase === "hold"
+                ? "700ms"
+                : "1000ms",
+            }}
+          />
         </div>
+
+        {/* Controls */}
+        <div className="flex items-center gap-2">
+          <Button type="button" size="sm" onClick={startBreathing} aria-pressed={breathingActive}>
+            <Play className="w-4 h-4 mr-2" />
+            {t('start')}
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={pauseBreathing}>
+            <Pause className="w-4 h-4 mr-2" />
+            {t('pause')}
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={resetBreathing}>
+            <RotateCcw className="w-4 h-4 mr-2" />
+            {t('reset')}
+          </Button>
+        </div>
+
+        {/* Phase and countdown for text users */}
+        <div className="mt-3 text-sm text-muted-foreground">
+          <span className="font-medium">
+            {t(breathingLabelKeyByPhase[breathingPhase])}
+          </span>
+          : {breathingCount}s
+        </div>
+
+        {/* Motion preference hint */}
+        {prefersReducedMotion && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Animations are reduced per your system settings.
+          </p>
+        )}
       </CardContent>
     </Card>
   );

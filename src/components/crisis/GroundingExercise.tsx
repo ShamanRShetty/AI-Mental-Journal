@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
@@ -6,20 +6,57 @@ import { CheckCircle2 } from "lucide-react";
 type TFn = (key: any) => any;
 
 export default function GroundingExercise({ t }: { t: TFn }) {
-  const [groundingChecked, setGroundingChecked] = useState({
-    see: 0,
-    touch: 0,
-    hear: 0,
-    smell: 0,
-    taste: 0,
+  const STORAGE_KEY = "groundingProgress.v1";
+  const [progress, setProgress] = useState<{see: number; touch: number; hear: number; smell: number; taste: number}>({
+    see: 0, touch: 0, hear: 0, smell: 0, taste: 0
   });
 
-  const groundingLabelByKey: Record<"see" | "touch" | "hear" | "smell" | "taste", "see5" | "touch4" | "hear3" | "smell2" | "taste1"> = {
-    see: "see5",
-    touch: "touch4",
-    hear: "hear3",
-    smell: "smell2",
-    taste: "taste1",
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setProgress({
+          see: Number(parsed.see) || 0,
+          touch: Number(parsed.touch) || 0,
+          hear: Number(parsed.hear) || 0,
+          smell: Number(parsed.smell) || 0,
+          taste: Number(parsed.taste) || 0,
+        });
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    } catch {}
+  }, [progress]);
+
+  const makeButton = (key: keyof typeof progress, max: number, label: string) => {
+    const value = progress[key];
+    const done = value >= max;
+    return (
+      <div key={key} className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setProgress((p) => ({ ...p, [key]: Math.min(max, (p[key] || 0) + 1) }))}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setProgress((p) => ({ ...p, [key]: Math.max(0, (p[key] || 0) - 1) }));
+          }}
+          aria-pressed={done}
+          aria-label={`${label}: ${value}/${max}`}
+          className={[
+            "px-3 py-2 rounded-md border text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring",
+            done ? "bg-green-600 text-white border-green-700" : "bg-background",
+          ].join(" ")}
+        >
+          {value}/{max}
+        </button>
+        <span className="text-sm">{label}</span>
+      </div>
+    );
   };
 
   return (
@@ -31,39 +68,23 @@ export default function GroundingExercise({ t }: { t: TFn }) {
         </CardTitle>
         <p className="text-sm text-gray-600">{t("groundingDesc")}</p>
       </CardHeader>
-      <CardContent>
-        <p className="mb-4 font-medium">{t("groundingPrompt")}</p>
-        <div className="space-y-3">
-          {([
-            { key: "see", max: 5 },
-            { key: "touch", max: 4 },
-            { key: "hear", max: 3 },
-            { key: "smell", max: 2 },
-            { key: "taste", max: 1 },
-          ] as const).map((item) => (
-            <div key={item.key} className="flex items-center gap-3">
-              <div className="flex gap-1">
-                {Array.from({ length: item.max }, (_, i) => (
-                  <Button
-                    key={i}
-                    size="sm"
-                    variant={i < groundingChecked[item.key] ? "default" : "outline"}
-                    onClick={() =>
-                      setGroundingChecked((prev) => ({
-                        ...prev,
-                        [item.key]: i < prev[item.key] ? i : i + 1,
-                      }))
-                    }
-                    className="w-8 h-8 p-0"
-                    aria-label={`Check item ${i + 1} for ${item.key}`}
-                  >
-                    {i < groundingChecked[item.key] ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
-                  </Button>
-                ))}
-              </div>
-              <span className="text-sm">{t(groundingLabelByKey[item.key] as any)}</span>
-            </div>
-          ))}
+      <CardContent className="space-y-3">
+        {makeButton("see", 5, t('see5'))}
+        {makeButton("touch", 4, t('touch4'))}
+        {makeButton("hear", 3, t('hear3'))}
+        {makeButton("smell", 2, t('smell2'))}
+        {makeButton("taste", 1, t('taste1'))}
+        <div className="pt-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              setProgress({ see: 0, touch: 0, hear: 0, smell: 0, taste: 0 })
+            }
+          >
+            Reset
+          </Button>
         </div>
       </CardContent>
     </Card>

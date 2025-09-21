@@ -31,6 +31,8 @@ import { toast } from 'sonner';
 import BreathingExercise from '@/components/crisis/BreathingExercise';
 import GroundingExercise from '@/components/crisis/GroundingExercise';
 import { Switch } from '@/components/ui/switch';
+import TrustedContactCard from '@/components/TrustedContactCard';
+import { useFeatureFlags } from '@/hooks/use-feature-flags';
 
 // Internationalization strings
 const STRINGS = {
@@ -453,7 +455,7 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
       await navigator.clipboard.writeText(text);
       toast.success(t('copiedToClipboard'));
     } catch (error) {
-      toast.error('Failed to copy');
+      toast.error('Copy failed. Please select the number and copy it manually.');
     }
   };
 
@@ -579,6 +581,8 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
       }
     };
   }, []);
+
+  const { flags } = useFeatureFlags();
 
   const sections = [
     { id: 'immediate', label: t('immediateHelp'), icon: AlertTriangle },
@@ -706,17 +710,22 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
               <ExternalLink className="w-4 h-4 mr-2" />
               {t('findCenter')}
             </Button>
+
+            {/* Trusted Contacts (feature-flagged) */}
+            {flags.trustedContacts && (
+              <TrustedContactCard />
+            )}
           </div>
         )}
 
         {/* Coping Tools Section */}
         {currentSection === 'coping' && (
           <div className="space-y-8">
-            {/* Breathing Exercise */}
-            <BreathingExercise t={t} />
+            {/* Breathing Exercise (feature-flagged) */}
+            {flags.breathingVisualizer && <BreathingExercise t={t} />}
 
-            {/* Grounding Exercise */}
-            <GroundingExercise t={t} />
+            {/* Grounding Exercise (feature-flagged) */}
+            {flags.groundingChecklist && <GroundingExercise t={t} />}
 
             {/* Quick Coping Tips */}
             <Card>
