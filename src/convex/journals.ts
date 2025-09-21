@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { getCurrentUser } from "./users";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 export const create = internalMutation({
   args: {
@@ -9,13 +10,13 @@ export const create = internalMutation({
     moodScore: v.number(),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
       throw new Error("User must be authenticated");
     }
 
     return await ctx.db.insert("journals", {
-      userId: user._id,
+      userId,
       text: args.text,
       reflection: args.reflection,
       moodScore: args.moodScore,

@@ -1,251 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Phone, 
-  MessageSquare, 
-  Copy, 
-  Share2, 
-  ExternalLink, 
-  Heart, 
-  Download, 
-  Printer, 
-  Save, 
-  Trash2,
-  Play,
-  Pause,
-  RotateCcw,
-  CheckCircle2,
-  AlertTriangle,
-  Globe,
-  Languages
-} from 'lucide-react';
+import { ExternalLink, Heart, Save, AlertTriangle, Globe } from 'lucide-react';
 import { toast } from 'sonner';
-import BreathingExercise from '@/components/crisis/BreathingExercise';
-import GroundingExercise from '@/components/crisis/GroundingExercise';
-import { Switch } from '@/components/ui/switch';
-import TrustedContactCard from '@/components/TrustedContactCard';
-import { useFeatureFlags } from '@/hooks/use-feature-flags';
 import ImmediateHelpSection from "@/components/crisis/support/ImmediateHelpSection";
 import CopingToolsSection from "@/components/crisis/support/CopingToolsSection";
 import SafetyPlanSection from "@/components/crisis/support/SafetyPlanSection";
 import ResourcesSection from "@/components/crisis/support/ResourcesSection";
 import SettingsSection from "@/components/crisis/support/SettingsSection";
+import { STRINGS, COUNTRIES } from "@/components/crisis/support/constants";
 
-// Internationalization strings
-const STRINGS = {
-  en: {
-    title: "Crisis Support & Safety",
-    emergencyBanner: "If you are in immediate danger, call emergency services now:",
-    notAlone: "You're not alone. Help is available 24/7.",
-    immediateHelp: "Immediate Help",
-    copingTools: "Coping Tools",
-    safetyPlan: "Safety Plan",
-    resources: "Resources",
-    settings: "Settings",
-    callEmergency: "Call Emergency",
-    callCrisis: "Call Crisis Line",
-    textCrisis: "Text Crisis Line",
-    copyNumber: "Copy Number",
-    shareContact: "Share with Trusted Contact",
-    findCenter: "Find Local Center",
-    breathing: "4-7-8 Breathing",
-    breathingDesc: "A calming breathing technique",
-    grounding: "5-4-3-2-1 Grounding",
-    groundingDesc: "Focus on your senses to stay present",
-    quickTips: "Quick Coping Tips",
-    breathingInhale: "Inhale 4",
-    breathingHold: "Hold 7",
-    breathingExhale: "Exhale 8",
-    start: "Start",
-    pause: "Pause",
-    reset: "Reset",
-    groundingPrompt: "Name items you notice:",
-    see5: "5 things you can see",
-    touch4: "4 things you can touch",
-    hear3: "3 things you can hear",
-    smell2: "2 things you can smell",
-    taste1: "1 thing you can taste",
-    warningSignsTitle: "Personal Warning Signs",
-    warningSignsDesc: "What tells you that you might be struggling?",
-    copingStrategiesTitle: "Coping Strategies",
-    copingStrategiesDesc: "What helps you feel better?",
-    supportContactsTitle: "People to Contact",
-    supportContactsDesc: "Friends, family, or trusted people",
-    professionalsTitle: "Professional Contacts",
-    professionalsDesc: "Therapists, doctors, counselors",
-    environmentTitle: "Environment Safety",
-    environmentDesc: "Steps to make your space safer",
-    emergencyContactsTitle: "Emergency Contacts",
-    emergencyContactsDesc: "Crisis lines and emergency numbers",
-    saveLocal: "Save Locally",
-    exportPlan: "Export Plan",
-    printPlan: "Print Plan",
-    clearPlan: "Clear Plan",
-    privacyNotice: "Your safety plan is stored locally on your device unless you choose to export it.",
-    country: "Country",
-    language: "Language",
-    copiedToClipboard: "Copied to clipboard",
-    planSaved: "Safety plan saved locally",
-    planExported: "Safety plan exported",
-    planCleared: "Safety plan cleared",
-    shareMessage: "I'm going through a difficult time and could use your support. Here are some crisis resources:",
-    quickCopingTips: [
-      "Take slow, deep breaths",
-      "Drink a glass of cold water",
-      "Call or text someone you trust",
-      "Listen to calming music",
-      "Go for a short walk if safe",
-      "Write down three things you're grateful for"
-    ]
-  },
-  es: {
-    title: "Apoyo en Crisis y Seguridad",
-    emergencyBanner: "Si estás en peligro inmediato, llama a servicios de emergencia ahora:",
-    notAlone: "No estás solo. La ayuda está disponible 24/7.",
-    immediateHelp: "Ayuda Inmediata",
-    copingTools: "Herramientas de Afrontamiento",
-    safetyPlan: "Plan de Seguridad",
-    resources: "Recursos",
-    settings: "Configuración",
-    callEmergency: "Llamar Emergencia",
-    callCrisis: "Llamar Línea de Crisis",
-    textCrisis: "Enviar Texto a Crisis",
-    copyNumber: "Copiar Número",
-    shareContact: "Compartir con Contacto de Confianza",
-    findCenter: "Encontrar Centro Local",
-    breathing: "Respiración 4-7-8",
-    breathingDesc: "Una técnica de respiración calmante",
-    grounding: "Conexión a Tierra 5-4-3-2-1",
-    groundingDesc: "Enfócate en tus sentidos para mantenerte presente",
-    quickTips: "Consejos Rápidos",
-    breathingInhale: "Inhalar 4",
-    breathingHold: "Mantener 7",
-    breathingExhale: "Exhalar 8",
-    start: "Iniciar",
-    pause: "Pausar",
-    reset: "Reiniciar",
-    groundingPrompt: "Nombra elementos que notes:",
-    see5: "5 cosas que puedes ver",
-    touch4: "4 cosas que puedes tocar",
-    hear3: "3 cosas que puedes escuchar",
-    smell2: "2 cosas que puedes oler",
-    taste1: "1 cosa que puedes saborear",
-    country: "País",
-    language: "Idioma",
-    copiedToClipboard: "Copiado al portapapeles",
-    planSaved: "Plan de seguridad guardado localmente",
-    planExported: "Plan de seguridad exportado",
-    planCleared: "Plan de seguridad borrado",
-    shareMessage: "Estoy pasando por un momento difícil y podría usar tu apoyo. Aquí hay algunos recursos de crisis:",
-    quickCopingTips: [
-      "Respira lenta y profundamente",
-      "Bebe un vaso de agua fría",
-      "Llama o envía un mensaje a alguien de confianza",
-      "Escucha música relajante",
-      "Sal a caminar si es seguro",
-      "Escribe tres cosas por las que estés agradecido"
-    ]
-  },
-  hi: {
-    title: "संकट सहायता और सुरक्षा",
-    emergencyBanner: "यदि आप तत्काल खतरे में हैं, तो अभी आपातकालीन सेवाओं को कॉल करें:",
-    notAlone: "आप अकेले नहीं हैं। सहायता 24/7 उपलब्ध है।",
-    immediateHelp: "तत्काल सहायता",
-    copingTools: "सामना करने के उपकरण",
-    safetyPlan: "सुरक्षा योजना",
-    resources: "संसाधन",
-    settings: "सेटिंग्स",
-    callEmergency: "आपातकालीन कॉल करें",
-    callCrisis: "संकट हेल्पलाइन कॉल करें",
-    textCrisis: "संकट हेल्पलाइन को टेक्स्ट करें",
-    copyNumber: "नंबर कॉपी करें",
-    shareContact: "विश्वसनीय संपर्क के साथ साझा करें",
-    findCenter: "स्थानीय केंद्र खोजें",
-    breathing: "4-7-8 श्वास",
-    breathingDesc: "एक शांत करने वाली श्वास तकनीक",
-    grounding: "5-4-3-2-1 ग्राउंडिंग",
-    groundingDesc: "वर्तमान में रहने के लिए अपनी इंद्रियों पर ध्यान दें",
-    quickTips: "त्वरित सुझाव",
-    breathingInhale: "सांस लें 4",
-    breathingHold: "रोकें 7",
-    breathingExhale: "छोड़ें 8",
-    start: "शुरू करें",
-    pause: "रोकें",
-    reset: "रीसेट करें",
-    groundingPrompt: "उन चीजों का नाम बताएं जिन्हें आप नोटिस करते हैं:",
-    see5: "5 चीजें जो आप देख सकते हैं",
-    touch4: "4 चीजें जिन्हें आप छू सकते हैं",
-    hear3: "3 चीजें जो आप सुन सकते हैं",
-    smell2: "2 चीजें जिन्हें आप सूंघ सकते हैं",
-    taste1: "1 चीज़ जिसका आप स्वाद ले सकते हैं",
-    country: "देश",
-    language: "भाषा",
-    copiedToClipboard: "क्लिपबोर्ड पर कॉपी किया गया",
-    planSaved: "सुरक्षा योजना स्थानीय रूप से सहेजी गई",
-    planExported: "सुरक्षा योजना निर्यात की गई",
-    planCleared: "सुरक्षा योजना साफ़ की गई",
-    shareMessage: "मैं एक कठिन समय से गुजर रहा हूं और आपके समर्थन का उपयोग कर सकता हूं। यहां कुछ संकट संसाधन हैं:",
-    quickCopingTips: [
-      "धीमी, गहरी सांस लें",
-      "एक गिलास ठंडा पानी पिएं",
-      "किसी भरोसेमंद व्यक्ति को कॉल या टेक्स्ट करें",
-      "शांत संगीत सुनें",
-      "यदि सुरक्षित है तो थोड़ी देर टहलने जाएं",
-      "तीन चीजें लिखें जिनके लिए आप आभारी हैं"
-    ]
-  }
-};
+ // Internationalization strings moved to constants. Using imported STRINGS.
 
-// Country presets
-const COUNTRIES = {
-  US: {
-    code: 'US',
-    name: 'United States',
-    emergencyNumber: '911',
-    crisisPhone: '988',
-    crisisTextKeyword: 'HOME',
-    crisisTextNumber: '741741',
-    smsBody: 'HOME',
-    links: [
-      { name: '988 Suicide & Crisis Lifeline', url: 'https://988lifeline.org' },
-      { name: 'Crisis Text Line', url: 'https://crisistextline.org' }
-    ]
-  },
-  IN: {
-    code: 'IN',
-    name: 'India',
-    emergencyNumber: '112',
-    crisisPhone: '9152987821',
-    crisisTextKeyword: 'Not available',
-    crisisTextNumber: '',
-    smsBody: '',
-    links: [
-      { name: 'AASRA', url: 'http://www.aasra.info' },
-      { name: 'Vandrevala Foundation', url: 'https://www.vandrevalafoundation.com' }
-    ]
-  },
-  OTHER: {
-    code: 'OTHER',
-    name: 'International',
-    emergencyNumber: 'Local emergency number',
-    crisisPhone: 'See resources below',
-    crisisTextKeyword: 'Varies by country',
-    crisisTextNumber: '',
-    smsBody: '',
-    links: [
-      { name: 'Find a Helpline (IASP)', url: 'https://findahelpline.com' },
-      { name: 'International Association for Suicide Prevention', url: 'https://www.iasp.info' }
-    ]
-  }
-};
+ // Country presets moved to constants. Using imported COUNTRIES.
 
 interface CrisisSupportProps {
   open: boolean;
@@ -281,36 +49,16 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
   const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
   const [reviewDate, setReviewDate] = useState<string>('');
   const [reviewerName, setReviewerName] = useState<string>('');
-  const [countryOverrides, setCountryOverrides] = useState<Record<string, Partial<typeof COUNTRIES.US>>>({});
+  // Replace the explicit US-based typing with a generic derived from COUNTRIES
+  const [countryOverrides, setCountryOverrides] = useState<
+    Record<string, Partial<(typeof COUNTRIES)[keyof typeof COUNTRIES]>>
+  >({});
 
-  // Breathing exercise state
-  const [breathingActive, setBreathingActive] = useState(false);
-  const [breathingPhase, setBreathingPhase] = useState<'inhale' | 'hold' | 'exhale'>('inhale');
-  const [breathingCount, setBreathingCount] = useState(0);
-  const breathingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // (removed) local breathing exercise state moved into BreathingExercise component
 
-  // Grounding exercise state
-  const [groundingChecked, setGroundingChecked] = useState({
-    see: 0,
-    touch: 0,
-    hear: 0,
-    smell: 0,
-    taste: 0
-  });
+  // (removed) local grounding state moved into GroundingExercise component
 
-  // Add: label key maps to satisfy t() typing for dynamic labels
-  const breathingLabelKeyByPhase: Record<'inhale' | 'hold' | 'exhale', 'breathingInhale' | 'breathingHold' | 'breathingExhale'> = {
-    inhale: 'breathingInhale',
-    hold: 'breathingHold',
-    exhale: 'breathingExhale',
-  };
-  const groundingLabelByKey: Record<'see' | 'touch' | 'hear' | 'smell' | 'taste', 'see5' | 'touch4' | 'hear3' | 'smell2' | 'taste1'> = {
-    see: 'see5',
-    touch: 'touch4',
-    hear: 'hear3',
-    smell: 'smell2',
-    taste: 'taste1',
-  };
+  // (removed) unused label key maps
 
   type Messages = typeof STRINGS.en;
   const t = <K extends keyof Messages>(key: K): Messages[K] => {
@@ -410,72 +158,13 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
     }
   };
 
-  // Breathing exercise logic
-  const startBreathing = () => {
-    if (breathingActive) return;
-    
-    setBreathingActive(true);
-    setBreathingPhase('inhale');
-    setBreathingCount(4);
-    
-    playChime();
-    
-    breathingIntervalRef.current = setInterval(() => {
-      setBreathingCount(prev => {
-        if (prev <= 1) {
-          setBreathingPhase(current => {
-            if (current === 'inhale') {
-              setBreathingCount(7);
-              return 'hold';
-            } else if (current === 'hold') {
-              setBreathingCount(8);
-              return 'exhale';
-            } else {
-              setBreathingCount(4);
-              playChime();
-              return 'inhale';
-            }
-          });
-          return prev;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
+  // (removed) breathing logic moved to BreathingExercise component
 
-  const pauseBreathing = () => {
-    setBreathingActive(false);
-    if (breathingIntervalRef.current) {
-      clearInterval(breathingIntervalRef.current);
-      breathingIntervalRef.current = null;
-    }
-  };
+  // (removed)
 
-  const resetBreathing = () => {
-    pauseBreathing();
-    setBreathingPhase('inhale');
-    setBreathingCount(4);
-  };
+  // (removed)
 
-  const playChime = () => {
-    try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.2);
-    } catch (error) {
-      console.log('Audio not available');
-    }
-  };
+  // (removed)
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -600,16 +289,7 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
     }
   };
 
-  // Clean up breathing interval on unmount
-  useEffect(() => {
-    return () => {
-      if (breathingIntervalRef.current) {
-        clearInterval(breathingIntervalRef.current);
-      }
-    };
-  }, []);
-
-  const { flags } = useFeatureFlags();
+  // (removed breathing interval cleanup)
 
   const sections = [
     { id: 'immediate', label: t('immediateHelp'), icon: AlertTriangle },
@@ -621,7 +301,7 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" showCloseButton={!emergencyMode}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold flex items-center justify-between gap-2">
             <span className="flex items-center gap-2">
@@ -712,9 +392,9 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
             baseCountry={baseCountry as any}
             activeCountry={activeCountry as any}
             selectedCountry={selectedCountry}
-            setSelectedCountry={(value) => setSelectedCountry(value as keyof typeof COUNTRIES)}
-            selectedLanguage={selectedLanguage}
-            setSelectedLanguage={(value) => setSelectedLanguage(value)}
+            setSelectedCountry={(value: keyof typeof COUNTRIES) => setSelectedCountry(value)}
+            selectedLanguage={selectedLanguage as "en" | "es" | "hi"}
+            setSelectedLanguage={(value: "en" | "es" | "hi") => setSelectedLanguage(value)}
             countryOverrides={countryOverrides as any}
             setCountryOverrides={setCountryOverrides as any}
             serverStorageEnabled={serverStorageEnabled}

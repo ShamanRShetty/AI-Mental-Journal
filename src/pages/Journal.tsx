@@ -1,19 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { api } from "@/convex/_generated/api";
 import { motion } from "framer-motion";
-import { Heart, Send, Loader2, ArrowLeft, AlertTriangle, Mic, Square, LifeBuoy } from "lucide-react";
+import { Heart, Loader2, ArrowLeft, LifeBuoy } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router";
 import { useAction, useQuery } from "convex/react";
 import { toast } from "sonner";
 import CrisisSupport from "@/components/CrisisSupport";
+import JournalEntryForm from "@/components/journal/JournalEntryForm";
+import ReflectionPanel from "@/components/journal/ReflectionPanel";
+import RecentEntries from "@/components/journal/RecentEntries";
+import CrisisAlertBanner from "@/components/journal/CrisisAlertBanner";
 
 export default function Journal() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const navigate = useNavigate();
   const [journalText, setJournalText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,12 +27,12 @@ export default function Journal() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Array<BlobPart>>([]);
   const [language, setLanguage] = useState<"en" | "hi" | "kn" | "ta" | "te" | "ml">("en");
+  // Map Journal language to CrisisSupport-supported languages
+  const crisisLang: "en" | "es" | "hi" = language === "hi" ? "hi" : "en";
   const transcribeAudio = useAction(api.ai.transcribeAudio);
 
   const analyzeEntry = useAction(api.ai.analyzeJournalEntry);
-  const entries = useQuery(api.journals.getUserEntries);
-  // Add: current user for guest-mode banner
-  const user = useQuery(api.users.currentUser, {});
+  const entries = useQuery(api.journals.getUserEntries, {});
 
   // Add: simple detector for Hindi (Devanagari) characters
   const isHindiText = (text: string) => /[\u0900-\u097F]/.test(text);
@@ -277,56 +279,10 @@ export default function Journal() {
 
         {/* Crisis Alert */}
         {showCrisisAlert && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
-          >
-            <Card className="border-orange-200 bg-orange-50">
-              <CardContent className="p-6">
-                <div className="flex items-start space-x-3">
-                  <AlertTriangle className="w-6 h-6 text-orange-600 mt-1" />
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-orange-900 mb-2">We're here for you</h3>
-                    <p className="text-orange-800 mb-4">
-                      It sounds like you're going through a difficult time. Remember that you're not alone, and help is available.
-                    </p>
-                    <div className="space-y-2 text-sm mb-4">
-                      <p><strong>Crisis Text Line:</strong> Text HOME to 741741</p>
-                      <p><strong>National Suicide Prevention Lifeline:</strong> 988</p>
-                      <p><strong>Teen Line:</strong> 1-800-852-8336</p>
-                    </div>
-                    <div className="flex gap-3 flex-wrap">
-                      <Button
-                        size="sm"
-                        onClick={() => setCrisisSupportOpen(true)}
-                        className="bg-red-600 hover:bg-red-700 whitespace-normal break-words text-center flex-wrap"
-                      >
-                        <AlertTriangle className="w-4 h-4 mr-2" />
-                        Open Crisis Support
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open('tel:988')}
-                        className="whitespace-normal break-words text-center flex-wrap"
-                      >
-                        Call 988 (US)
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setShowCrisisAlert(false)}
-                        className="whitespace-normal break-words text-center flex-wrap"
-                      >
-                        I understand
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+          <CrisisAlertBanner
+            onOpenCrisisSupport={() => setCrisisSupportOpen(true)}
+            onDismiss={() => setShowCrisisAlert(false)}
+          />
         )}
 
         <div className="grid lg:grid-cols-2 gap-8">
@@ -336,91 +292,18 @@ export default function Journal() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-2xl font-bold tracking-tight">
-                  How are you feeling today?
-                </CardTitle>
-                <p className="text-gray-600">
-                  Take a moment to express your thoughts and emotions. This is your safe space.
-                </p>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-600">Reflection language:</span>
-                    <Select
-                      value={language}
-                      onValueChange={(val) => setLanguage(val as "en" | "hi" | "kn" | "ta" | "te" | "ml")}
-                    >
-                      <SelectTrigger className="w-[260px]">
-                        <SelectValue placeholder="Select language" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="en">English</SelectItem>
-                        <SelectItem value="hi">हिंदी (Hindi)</SelectItem>
-                        <SelectItem value="kn">ಕನ್ನಡ (Kannada)</SelectItem>
-                        <SelectItem value="ta">தமிழ் (Tamil)</SelectItem>
-                        <SelectItem value="te">తెలుగు (Telugu)</SelectItem>
-                        <SelectItem value="ml">മലയാളം (Malayalam)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Textarea
-                    value={journalText}
-                    onChange={(e) => setJournalText(e.target.value)}
-                    placeholder="Write about your day, your feelings, your thoughts... anything that's on your mind."
-                    className="min-h-[300px] resize-none text-base leading-relaxed"
-                    disabled={isSubmitting}
-                  />
-                  {isRecording && interimTranscript && (
-                    <p className="text-sm text-gray-500">
-                      Listening: <span className="italic">{interimTranscript}</span>
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <Button
-                      type="button"
-                      variant={isRecording ? "destructive" : "outline"}
-                      onClick={isRecording ? stopRecording : startRecording}
-                      disabled={isSubmitting}
-                      className="mr-2"
-                    >
-                      {isRecording ? (
-                        <>
-                          <Square className="w-4 h-4 mr-2" />
-                          Stop Voice
-                        </>
-                      ) : (
-                        <>
-                          <Mic className="w-4 h-4 mr-2" />
-                          Start Voice
-                        </>
-                      )}
-                    </Button>
-
-                    <Button
-                      type="submit"
-                      className="ml-auto"
-                      size="lg"
-                      disabled={isSubmitting || !journalText.trim()}
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Analyzing...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4 mr-2" />
-                          Submit Entry
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
+            <JournalEntryForm
+              language={language}
+              setLanguage={setLanguage}
+              journalText={journalText}
+              setJournalText={setJournalText}
+              isSubmitting={isSubmitting}
+              isRecording={isRecording}
+              interimTranscript={interimTranscript}
+              startRecording={startRecording}
+              stopRecording={stopRecording}
+              handleSubmit={handleSubmit}
+            />
           </motion.div>
 
           {/* AI Reflection */}
@@ -429,59 +312,9 @@ export default function Journal() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <Card className="shadow-lg h-fit">
-              <CardHeader>
-                <CardTitle className="text-2xl font-bold tracking-tight">
-                  AI Reflection
-                </CardTitle>
-                <p className="text-gray-600">
-                  Receive empathetic insights about your journal entry.
-                </p>
-              </CardHeader>
-              <CardContent>
-                {currentReflection ? (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-6 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg"
-                  >
-                    <p className="text-gray-800 leading-relaxed">{currentReflection}</p>
-                  </motion.div>
-                ) : (
-                  <div className="p-6 bg-gray-50 rounded-lg text-center">
-                    <Heart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">
-                      Submit a journal entry to receive your personalized reflection.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <ReflectionPanel currentReflection={currentReflection} />
 
-            {/* Recent Entries */}
-            {entries && entries.length > 0 && (
-              <Card className="shadow-lg mt-8">
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold tracking-tight">
-                    Recent Entries
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4 max-h-[400px] overflow-y-auto">
-                    {entries.slice(0, 5).map((entry) => (
-                      <div key={entry._id} className="p-4 bg-gray-50 rounded-lg">
-                        <p className="text-sm text-gray-600 mb-2">
-                          {new Date(entry._creationTime).toLocaleDateString()}
-                        </p>
-                        <p className="text-gray-800 text-sm line-clamp-3">
-                          {entry.text}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <RecentEntries entries={entries} />
           </motion.div>
         </div>
       </div>
@@ -491,6 +324,7 @@ export default function Journal() {
         open={crisisSupportOpen}
         onOpenChange={setCrisisSupportOpen}
         emergencyMode={showCrisisAlert}
+        langCode={crisisLang}
       />
     </div>
   );

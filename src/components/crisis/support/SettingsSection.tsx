@@ -74,7 +74,7 @@ export default function SettingsSection({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Select value={selectedCountry as string} onValueChange={(value) => setSelectedCountry(value as keyof CountriesMap)}>
+          <Select value={selectedCountry as string} onValueChange={(value: string) => setSelectedCountry(value as keyof CountriesMap)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -113,7 +113,7 @@ export default function SettingsSection({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Select value={selectedLanguage} onValueChange={(value) => setSelectedLanguage(value as "en" | "es" | "hi")}>
+          <Select value={selectedLanguage} onValueChange={(value: "en" | "es" | "hi") => setSelectedLanguage(value)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>

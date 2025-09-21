@@ -1,12 +1,11 @@
 import { Toaster } from "@/components/ui/sonner";
-import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { InstrumentationProvider } from "@/instrumentation.tsx";
 import AuthPage from "@/pages/Auth.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
 import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router";
+import { createBrowserRouter, RouterProvider, useLocation, Outlet } from "react-router";
 import "./index.css";
 import Home from "./pages/Home.tsx";
 import Journal from "./pages/Journal.tsx";
@@ -39,21 +38,33 @@ function RouteSyncer() {
   return null;
 }
 
+function RootLayout() {
+  return (
+    <>
+      <RouteSyncer />
+      <Outlet />
+    </>
+  );
+}
+
+const router = createBrowserRouter([
+  {
+    element: <RootLayout />,
+    children: [
+      { path: "/", element: <Home /> },
+      { path: "/journal", element: <Journal /> },
+      { path: "/dashboard", element: <Dashboard /> },
+      { path: "/auth", element: <AuthPage redirectAfterAuth="/journal" /> },
+      { path: "*", element: <NotFound /> },
+    ],
+  },
+]);
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <VlyToolbar />
     <InstrumentationProvider>
       <ConvexAuthProvider client={convex}>
-        <BrowserRouter>
-          <RouteSyncer />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/journal" element={<Journal />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/auth" element={<AuthPage redirectAfterAuth="/journal" />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <RouterProvider router={router} />
         <Toaster />
       </ConvexAuthProvider>
     </InstrumentationProvider>

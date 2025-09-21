@@ -21,8 +21,8 @@ export default function Dashboard() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   
-  const moodData = useQuery(api.journals.getMoodData);
-  const entries = useQuery(api.journals.getUserEntries);
+  const moodData = useQuery(api.journals.getMoodData, {});
+  const entries = useQuery(api.journals.getUserEntries, {});
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {

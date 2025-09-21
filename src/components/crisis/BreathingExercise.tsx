@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Heart, Play, Pause, RotateCcw } from "lucide-react";
+import { Play, Pause, RotateCcw } from "lucide-react";
 
 type TFn = (key: any) => any;
 
@@ -9,7 +9,7 @@ export default function BreathingExercise({ t }: { t: TFn }) {
   const [breathingActive, setBreathingActive] = useState(false);
   const [breathingPhase, setBreathingPhase] = useState<"inhale" | "hold" | "exhale">("inhale");
   const [breathingCount, setBreathingCount] = useState(4);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<number | null>(null);
 
   const breathingLabelKeyByPhase: Record<"inhale" | "hold" | "exhale", "breathingInhale" | "breathingHold" | "breathingExhale"> = {
     inhale: "breathingInhale",

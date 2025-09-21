@@ -9,7 +9,7 @@ type LinkInfo = { name: string; url: string };
 type CountryInfo = { links: LinkInfo[] };
 
 export default function ResourcesSection({
-  t,
+  t: _t,
   activeCountry,
 }: {
   t: TFn;
