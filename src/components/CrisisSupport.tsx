@@ -257,7 +257,7 @@ interface SafetyPlan {
 
 export default function CrisisSupport({ open, onOpenChange, emergencyMode = false }: CrisisSupportProps) {
   const [currentSection, setCurrentSection] = useState(emergencyMode ? 'immediate' : 'immediate');
-  const [selectedCountry, setSelectedCountry] = useState<keyof typeof COUNTRIES>('US');
+  const [selectedCountry, setSelectedCountry] = useState<keyof typeof COUNTRIES>('IN');
   const [selectedLanguage, setSelectedLanguage] = useState<keyof typeof STRINGS>('en');
   const [safetyPlan, setSafetyPlan] = useState<SafetyPlan>({
     warningSigns: [],
@@ -326,8 +326,11 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
         setSelectedLanguage(langCode);
       }
       
-      if (countryCode === 'US' || countryCode === 'IN') {
-        setSelectedCountry(countryCode as keyof typeof COUNTRIES);
+      // Only set India explicitly; otherwise fall back to International
+      if (countryCode === 'IN') {
+        setSelectedCountry('IN');
+      } else {
+        setSelectedCountry('OTHER');
       }
     } catch (error) {
       console.log('Auto-detection failed, using defaults');
@@ -864,11 +867,14 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(COUNTRIES).map(([code, c]) => (
-                      <SelectItem key={code} value={code}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
+                    {Object
+                      .entries(COUNTRIES)
+                      .filter(([code]) => code !== 'US') // Hide United States from selection
+                      .map(([code, c]) => (
+                        <SelectItem key={code} value={code}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
 
