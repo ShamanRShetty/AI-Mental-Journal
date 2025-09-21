@@ -5,7 +5,7 @@ import CrisisSupport from "@/components/CrisisSupport";
 import { useAuth } from "@/hooks/use-auth";
 import { useFeatureFlags } from "@/hooks/use-feature-flags";
 import { motion } from "framer-motion";
-import { BookOpen, BarChart3, Heart, ArrowRight, Sparkles, AlertTriangle, Moon, Sun, Languages } from "lucide-react";
+import { BookOpen, Heart, ArrowRight, Sparkles, AlertTriangle, Languages } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
@@ -14,11 +14,7 @@ export default function Home() {
   const { isAuthenticated, isLoading, signOut, user } = useAuth();
   const navigate = useNavigate();
   const { flags } = useFeatureFlags();
-  const [dark, setDark] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem("theme") === "dark";
-    } catch { return false; }
-  });
+  // Dark mode removed — always light theme
   const [lang, setLang] = useState<'en' | 'hi' | 'es'>(() => {
     try {
       const saved = localStorage.getItem("lang");
@@ -31,17 +27,13 @@ export default function Home() {
   const [crisisSupportOpen, setCrisisSupportOpen] = useState<boolean>(false);
   const [overviewOpen, setOverviewOpen] = useState<boolean>(false);
 
+  // Force light theme; remove any persisted dark mode
   useEffect(() => {
     try {
-      if (dark) {
-        document.documentElement.classList.add("dark");
-        localStorage.setItem("theme", "dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-        localStorage.setItem("theme", "light");
-      }
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
     } catch {}
-  }, [dark]);
+  }, []);
 
   useEffect(() => {
     try {
@@ -105,11 +97,6 @@ export default function Home() {
       title: "AI Reflections",
       description: "Receive empathetic, personalized reflections that help you understand your emotions better."
     },
-    {
-      icon: BarChart3,
-      title: "Mood Tracking",
-      description: "Visualize your emotional journey over time with beautiful, insightful charts."
-    }
   ];
 
   return (
@@ -139,18 +126,7 @@ export default function Home() {
               </Button>
 
               {/* Feature toggles in navbar */}
-              {flags.darkModeToggle && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setDark((d) => !d)}
-                  aria-label="Toggle dark mode"
-                  title="Toggle dark mode"
-                  className="hidden sm:inline-flex"
-                >
-                  {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                </Button>
-              )}
+              {/* Dark mode toggle removed */}
               {flags.i18nToggle && (
                 <div className="hidden sm:flex items-center gap-2">
                   <Languages className="w-4 h-4 text-muted-foreground" />

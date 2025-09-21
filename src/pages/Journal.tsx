@@ -27,6 +27,12 @@ export default function Journal() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Array<BlobPart>>([]);
   const [language, setLanguage] = useState<"en" | "hi" | "kn" | "ta" | "te" | "ml">("en");
+  // Add: textarea ref to restore focus after submit
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  // Add: session mood scores for simple summary
+  const [sessionMoods, setSessionMoods] = useState<number[]>([]);
+  // Add: last failed text to enable retry inline
+  const [lastFailedText, setLastFailedText] = useState<string | null>(null);
   // Map Journal language to CrisisSupport-supported languages
   const crisisLang: "en" | "es" | "hi" = language === "hi" ? "hi" : "en";
   const transcribeAudio = useAction(api.ai.transcribeAudio);
@@ -157,41 +163,55 @@ export default function Journal() {
     }
   };
 
+  // Extract core processing so we can reuse for retry
+  const processEntry = async (textToUse: string) => {
+    // Auto-detect Hindi if user typed in Devanagari, but allow manual override
+    let targetLang: "en" | "hi" | "kn" | "ta" | "te" | "ml" = language;
+    if (isHindiText(textToUse) && language !== "hi") {
+      targetLang = "hi";
+      toast("Detected Hindi text — generating reflection in Hindi.");
+    }
+
+    const result = await analyzeEntry({ text: textToUse, language: targetLang });
+    setCurrentReflection(result.reflection);
+
+    if ((result as any).saved === false) {
+      toast("You're in guest mode — entries aren't saved.", {
+        description: "Sign in with email to save your reflections.",
+      });
+    }
+
+    if (result.moodScore < -0.6) {
+      setShowCrisisAlert(true);
+    }
+
+    // Track simple session mood trend (keep last 5)
+    setSessionMoods((prev) => {
+      const next = [...prev, result.moodScore];
+      return next.slice(-5);
+    });
+
+    // Clear input and refocus
+    setJournalText("");
+    setLastFailedText(null);
+    setTimeout(() => textareaRef.current?.focus(), 0);
+    toast.success("Journal entry processed.");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!journalText.trim()) {
-      toast.error("Please write something before submitting.");
+      toast.error("Please share a thought or feeling first.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // Auto-detect Hindi if user typed in Devanagari, but allow manual override
-      // Expand targetLang to include all supported languages
-      let targetLang: "en" | "hi" | "kn" | "ta" | "te" | "ml" = language;
-      if (isHindiText(journalText) && language !== "hi") {
-        targetLang = "hi";
-        toast("Detected Hindi text — generating reflection in Hindi.");
-      }
-
-      const result = await analyzeEntry({ text: journalText, language: targetLang });
-      setCurrentReflection(result.reflection);
-
-      if ((result as any).saved === false) {
-        toast("You're in guest mode — entries aren't saved.", {
-          description: "Sign in with email to save your reflections.",
-        });
-      }
-
-      if (result.moodScore < -0.6) {
-        setShowCrisisAlert(true);
-      }
-
-      setJournalText("");
-      toast.success("Journal entry processed.");
+      await processEntry(journalText);
     } catch (error) {
       console.error("Error submitting journal entry:", error);
-      toast.error("Failed to save journal entry. Please try again.");
+      setLastFailedText(journalText);
+      toast.error("Hmm, something went wrong. Try again?");
     } finally {
       setIsSubmitting(false);
     }
@@ -303,7 +323,44 @@ export default function Journal() {
               startRecording={startRecording}
               stopRecording={stopRecording}
               handleSubmit={handleSubmit}
+              textareaRef={textareaRef}
             />
+            {/* Inline retry helper if last attempt failed */}
+            {lastFailedText && (
+              <Card className="mt-3">
+                <CardContent className="p-3 flex items-center justify-between gap-3">
+                  <p className="text-sm text-muted-foreground">
+                    We couldn't process your last entry.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setJournalText(lastFailedText)}
+                      aria-label="Restore last entry"
+                    >
+                      Restore
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        setIsSubmitting(true);
+                        try {
+                          await processEntry(lastFailedText);
+                        } catch {
+                          toast.error("Still having trouble — please try again.");
+                        } finally {
+                          setIsSubmitting(false);
+                        }
+                      }}
+                      aria-label="Retry sending last entry"
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </motion.div>
 
           {/* AI Reflection */}
@@ -313,6 +370,36 @@ export default function Journal() {
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             <ReflectionPanel currentReflection={currentReflection} />
+
+            {/* Simple session summary after a few entries */}
+            {sessionMoods.length >= 3 && (
+              <Card className="mt-4">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm text-muted-foreground">
+                      Want a quick takeaway for today?
+                    </p>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const avg =
+                          sessionMoods.reduce((a, b) => a + b, 0) / sessionMoods.length;
+                        const sentence =
+                          avg > 0.2
+                            ? "Today's reflections suggest an overall positive mood with moments of strength."
+                            : avg < -0.2
+                            ? "Today felt challenging — you showed courage by putting feelings into words."
+                            : "Your mood seems balanced today — steady and reflective.";
+                        setCurrentReflection(sentence);
+                      }}
+                      aria-label="Summarize how you're feeling today"
+                    >
+                      Summarize Today
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <RecentEntries entries={entries} />
           </motion.div>

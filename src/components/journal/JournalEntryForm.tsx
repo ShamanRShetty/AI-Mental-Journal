@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Mic, Send, Square } from "lucide-react";
 import React from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type Props = {
   language: "en" | "hi" | "kn" | "ta" | "te" | "ml";
@@ -16,6 +17,7 @@ type Props = {
   startRecording: () => void;
   stopRecording: () => void;
   handleSubmit: (e: React.FormEvent) => void;
+  textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
 };
 
 export default function JournalEntryForm({
@@ -29,12 +31,28 @@ export default function JournalEntryForm({
   startRecording,
   stopRecording,
   handleSubmit,
+  textareaRef,
 }: Props) {
   return (
     <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle className="text-2xl font-bold tracking-tight">
-          How are you feeling today?
+        <CardTitle className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <span>How are you feeling today?</span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className="inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs font-semibold text-muted-foreground"
+                  aria-label="About privacy and how it works"
+                >
+                  i
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-xs text-sm leading-relaxed">
+                100% private. Nothing is saved or stored unless you sign in. Made for you, by youth who care.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </CardTitle>
         <p className="text-gray-600">
           Take a moment to express your thoughts and emotions. This is your safe space.
@@ -64,11 +82,13 @@ export default function JournalEntryForm({
             </Select>
           </div>
           <Textarea
+            ref={textareaRef}
             value={journalText}
             onChange={(e) => setJournalText(e.target.value)}
-            placeholder="Write about your day, your feelings, your thoughts... anything that's on your mind."
+            placeholder="I'm feeling overwhelmed with exams and expectations today..."
             className="min-h-[300px] resize-none text-base leading-relaxed"
             disabled={isSubmitting}
+            aria-label="Journal input"
           />
           {isRecording && interimTranscript && (
             <p className="text-sm text-gray-500">
@@ -82,6 +102,7 @@ export default function JournalEntryForm({
               onClick={isRecording ? stopRecording : startRecording}
               disabled={isSubmitting}
               className="mr-2"
+              aria-label={isRecording ? "Stop voice recording" : "Start voice recording"}
             >
               {isRecording ? (
                 <>
@@ -101,11 +122,12 @@ export default function JournalEntryForm({
               className="ml-auto"
               size="lg"
               disabled={isSubmitting || !journalText.trim()}
+              aria-label="Send for AI reflection"
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Analyzing...
+                  AI is reflecting…
                 </>
               ) : (
                 <>
