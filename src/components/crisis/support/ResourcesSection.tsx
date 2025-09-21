@@ -25,8 +25,8 @@ export default function ResourcesSection({
           {activeCountry.links.map((link, index) => (
             <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
               <div>
-                <h4 className="font-medium">{link.name}</h4>
-                <p className="text-sm text-gray-600">{link.url}</p>
+                <h4 className="font-medium text-gray-900 dark:text-gray-100">{link.name}</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-300">{link.url}</p>
               </div>
               <Button onClick={() => window.open(link.url, "_blank", "noopener")} variant="outline" size="sm">
                 <ExternalLink className="w-4 h-4" />

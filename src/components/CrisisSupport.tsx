@@ -313,10 +313,10 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
 
         {/* Emergency Banner */}
         {emergencyMode && (
-          <Alert className="border-red-200 bg-red-50" role="alert" aria-live="assertive">
-            <AlertTriangle className="w-5 h-5 text-red-600" />
-            <AlertDescription className="text-red-800 font-medium">
-              {t('emergencyBanner')} <strong>{activeCountry.emergencyNumber}</strong>
+          <Alert className="border-red-200 bg-red-50 dark:border-red-700 dark:bg-red-900/40" role="alert" aria-live="assertive">
+            <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+            <AlertDescription className="text-red-800 dark:text-red-100 font-medium">
+              {t('emergencyBanner')} <strong className="text-red-900 dark:text-red-50">{activeCountry.emergencyNumber}</strong>
             </AlertDescription>
           </Alert>
         )}
