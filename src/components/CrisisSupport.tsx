@@ -354,6 +354,13 @@ export default function CrisisSupport({ open, onOpenChange, emergencyMode = fals
     }
   }, []);
 
+  // Ensure country stays aligned with Hindi selection
+  useEffect(() => {
+    if (selectedLanguage === 'hi' && selectedCountry !== 'IN') {
+      setSelectedCountry('IN');
+    }
+  }, [selectedLanguage, selectedCountry]);
+
   // Load settings & safety plan from localStorage
   useEffect(() => {
     try {
