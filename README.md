@@ -71,8 +71,3 @@ Set keys via your platform’s Integrations/API Keys UI:
 ## 🧾 License  
 
 MIT — See LICENSE.  
-
----
-
-🏆 **Hackathon Relevance**  
-Reflect & Track addresses mental health accessibility in India, combining AI journaling, multilingual reflection, and culturally aware crisis support into one safe, private, and accessible platform.  
